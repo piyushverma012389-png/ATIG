@@ -30,19 +30,21 @@ class YOLODetector:
         self.model = YOLO(model_path)
         print("[AI] YOLOv12 Model loaded.")
 
-        # Target tactical classes
+        # Target tactical classes (Humans, Vehicles, Drones, Animals only)
         self.target_classes = {
             0: "Human",
-            2: "Vehicle", 3: "Vehicle", 5: "Vehicle", 7: "Vehicle",
-            15: "Animal", 16: "Animal", 17: "Animal", 18: "Animal",
+            2: "Vehicle", 3: "Vehicle", 5: "Vehicle", 6: "Vehicle", 7: "Vehicle", 8: "Vehicle",
+            4: "Drone",
+            14: "Animal", 15: "Animal", 16: "Animal", 17: "Animal", 18: "Animal",
             19: "Animal", 20: "Animal", 21: "Animal", 22: "Animal", 23: "Animal",
         }
 
         # Colors (BGR)
         self.colors = {
-            "Human":  (0, 165, 255),   # Orange
+            "Human":  (0, 165, 255),   # Amber/Orange
             "Vehicle": (0, 0, 255),    # Red
-            "Animal": (255, 180, 0),   # Cyan/Blue
+            "Drone":   (255, 0, 255),  # Magenta
+            "Animal":  (255, 180, 0),  # Cyan
         }
 
         self.total_detections = 0

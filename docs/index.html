@@ -1043,7 +1043,7 @@ function drawObjectBars(byObject, total) {
     container.innerHTML = '<div class="text-center py-4"><span class="font-mono text-xs text-outline">No detection data</span></div>';
     return;
   }
-  const colors = { 'Human': '#ffc107', 'Vehicle': '#ff5252', 'Animal': '#00e5ff', 'Tactical Object': '#00e676' };
+  const colors = { 'Human': '#ffc107', 'Vehicle': '#ff5252', 'Drone': '#e040fb', 'Animal': '#00e5ff' };
   container.innerHTML = Object.entries(byObject).map(([obj, count]) => {
     const pct = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
     const color = colors[obj] || '#00e5ff';
@@ -1220,6 +1220,39 @@ async function runWebcamInference() {
   setTimeout(runWebcamInference, 140);
 }
 
+// ─── Tactical Target Whitelist (Strict Filtering) ───────────
+// ONLY Humans, Animals, Drones, and Vehicles are tracked.
+// All stationary furniture/household objects (dining table, chair, bed, etc.) are ignored.
+const TACTICAL_CLASSES = {
+  // Humans
+  'person': { category: 'Human', baseThreat: 2 },
+
+  // Vehicles
+  'car': { category: 'Vehicle', baseThreat: 3 },
+  'truck': { category: 'Vehicle', baseThreat: 3 },
+  'bus': { category: 'Vehicle', baseThreat: 3 },
+  'motorcycle': { category: 'Vehicle', baseThreat: 3 },
+  'bicycle': { category: 'Vehicle', baseThreat: 2 },
+  'boat': { category: 'Vehicle', baseThreat: 3 },
+  'train': { category: 'Vehicle', baseThreat: 3 },
+
+  // Drones / Airborne
+  'airplane': { category: 'Drone', baseThreat: 3 },
+  'kite': { category: 'Drone', baseThreat: 2 },
+
+  // Animals
+  'dog': { category: 'Animal', baseThreat: 1 },
+  'cat': { category: 'Animal', baseThreat: 1 },
+  'bird': { category: 'Animal', baseThreat: 1 },
+  'horse': { category: 'Animal', baseThreat: 1 },
+  'sheep': { category: 'Animal', baseThreat: 1 },
+  'cow': { category: 'Animal', baseThreat: 1 },
+  'elephant': { category: 'Animal', baseThreat: 2 },
+  'bear': { category: 'Animal', baseThreat: 3 },
+  'zebra': { category: 'Animal', baseThreat: 1 },
+  'giraffe': { category: 'Animal', baseThreat: 1 }
+};
+
 // Process Real-time Detections & Trigger Sensor Fusion
 function processAIDetections(predictions) {
   const detections = [];
@@ -1240,19 +1273,19 @@ function processAIDetections(predictions) {
   const cH = canvas.height;
 
   predictions.forEach(p => {
-    let category = 'Tactical Object';
-    let threatLevel = 'Low';
     const cName = p.class.toLowerCase();
 
-    if (cName === 'person') {
-      category = 'Human';
-    } else if (['car', 'truck', 'bus', 'motorcycle', 'bicycle'].includes(cName)) {
-      category = 'Vehicle';
-    } else if (['dog', 'cat', 'bird', 'horse', 'sheep', 'cow', 'bear'].includes(cName)) {
-      category = 'Animal';
-    } else {
-      category = p.class.charAt(0).toUpperCase() + p.class.slice(1);
+    // STRICT FILTER: Discard non-tactical objects (e.g. dining table, chair, bottle, etc.)
+    const targetInfo = TACTICAL_CLASSES[cName];
+    if (!targetInfo) {
+      return; // Skip table, chair, etc.
     }
+
+    // Filter out low confidence noise
+    if (p.score < 0.45) return;
+
+    const category = targetInfo.category;
+    let threatLevel = 'Low';
 
     const x = (p.bbox[0] / vW) * cW;
     const y = (p.bbox[1] / vH) * cH;
@@ -1264,7 +1297,7 @@ function processAIDetections(predictions) {
     distance = Math.max(0.8, Math.min(15.0, parseFloat(distance)));
 
     // Sensor Fusion Threat Logic
-    let baseThreat = (category === 'Vehicle') ? 3 : ((category === 'Human') ? 2 : 1);
+    let baseThreat = targetInfo.baseThreat;
     let distMod = distance < 3.5 ? 2 : (distance < 7.0 ? 1 : 0);
     let confMod = p.score > 0.75 ? 1 : 0;
     let score = baseThreat + distMod + confMod;
@@ -1275,7 +1308,7 @@ function processAIDetections(predictions) {
 
     detections.push({
       category: category,
-      label: p.class.toUpperCase(),
+      label: category.toUpperCase(),
       confidence: p.score,
       threat_level: threatLevel,
       distance: distance,
@@ -1285,9 +1318,14 @@ function processAIDetections(predictions) {
 
   appState.liveDetections = detections;
 
-  if (targetBadge && detections.length > 0) {
-    targetBadge.textContent = `TRACKING ${detections.length} TARGET${detections.length > 1 ? 'S' : ''} [PIR+US]`;
-    targetBadge.className = 'font-mono text-2xs text-error bg-surface/80 px-2 py-0.5 rounded border border-error/40 font-bold';
+  if (targetBadge) {
+    if (detections.length > 0) {
+      targetBadge.textContent = `TRACKING ${detections.length} TARGET${detections.length > 1 ? 'S' : ''} [PIR+US]`;
+      targetBadge.className = 'font-mono text-2xs text-error bg-surface/80 px-2 py-0.5 rounded border border-error/40 font-bold';
+    } else {
+      targetBadge.textContent = 'SCANNING // NO TARGETS';
+      targetBadge.className = 'font-mono text-2xs text-secondary bg-surface/80 px-2 py-0.5 rounded border border-secondary/30';
+    }
   }
 
   // Trigger alert if high/medium threat detected
