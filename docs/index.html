@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>ATIG — Autonomous Tactical Intelligence Grid | Live Command & Control</title>
-<meta name="description" content="ATIG Live Command & Control Dashboard — Real-time AI surveillance, sensor fusion, threat classification, and autonomous tactical response."/>
+<title>ATIG — Autonomous Tactical Intelligence Grid</title>
+<meta name="description" content="ATIG Command & Control Dashboard — Real-time AI surveillance, threat detection, and autonomous tactical response."/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script>
 tailwind.config = {
@@ -57,7 +57,7 @@ tailwind.config = {
     background-color: #0a0c10;
     color: #e2e4ec;
     background-image:
-      radial-gradient(circle at 1px 1px, rgba(0,229,255,0.035) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, rgba(0,229,255,0.03) 1px, transparent 0);
     background-size: 32px 32px;
   }
 
@@ -69,8 +69,8 @@ tailwind.config = {
     border: 1px solid rgba(42, 48, 64, 0.6);
   }
   .glass-active {
-    border-color: rgba(0, 229, 255, 0.25);
-    box-shadow: 0 0 25px rgba(0, 229, 255, 0.06), inset 0 1px 0 rgba(0, 229, 255, 0.12);
+    border-color: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.05), inset 0 1px 0 rgba(0, 229, 255, 0.1);
   }
   .glass:hover {
     border-color: rgba(42, 48, 64, 0.9);
@@ -87,7 +87,7 @@ tailwind.config = {
     height: 10px;
     border-color: #00e5ff;
     border-style: solid;
-    opacity: 0.6;
+    opacity: 0.5;
     pointer-events: none;
   }
   .corner-marks::before {
@@ -120,7 +120,7 @@ tailwind.config = {
   }
   .status-pulse.danger {
     background: #ff5252;
-    box-shadow: 0 0 10px #ff5252;
+    box-shadow: 0 0 8px #ff5252;
   }
   .status-pulse.danger::after {
     content: '';
@@ -135,8 +135,8 @@ tailwind.config = {
   }
 
   @keyframes pulse-ring {
-    0% { transform: scale(1); opacity: 0.8; }
-    100% { transform: scale(2.2); opacity: 0; }
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2); opacity: 0; }
   }
 
   /* Tab system */
@@ -146,13 +146,13 @@ tailwind.config = {
   .tab-btn.active {
     color: #00e5ff;
     border-bottom: 2px solid #00e5ff;
-    background: rgba(0,229,255,0.08);
+    background: rgba(0,229,255,0.05);
   }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
   /* Scrollbar */
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #5a6478; }
@@ -176,16 +176,17 @@ tailwind.config = {
     overflow: hidden;
     background: #080a0e;
   }
-  .feed-container video, .feed-container img {
+  .feed-container canvas, .feed-container video, .feed-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
   }
   .feed-overlay {
     position: absolute;
     top: 0; left: 0; right: 0;
-    padding: 10px 14px;
-    background: linear-gradient(to bottom, rgba(8,10,14,0.85), transparent);
+    padding: 8px 12px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -194,36 +195,12 @@ tailwind.config = {
   .feed-overlay-bottom {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 10px 14px;
-    background: linear-gradient(to top, rgba(8,10,14,0.85), transparent);
+    padding: 8px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
     pointer-events: none;
-  }
-
-  /* Scanlines filter */
-  .scanline-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-    background-size: 100% 3px, 6px 100%;
-    opacity: 0.6;
-  }
-
-  /* Bounding box simulation */
-  .target-box {
-    position: absolute;
-    border: 2px solid #ff5252;
-    background: rgba(255, 82, 82, 0.15);
-    box-shadow: 0 0 10px rgba(255, 82, 82, 0.4);
-    animation: box-flicker 1.5s infinite alternate;
-    transition: all 0.4s ease;
-  }
-  @keyframes box-flicker {
-    0% { border-color: rgba(255, 82, 82, 0.7); }
-    100% { border-color: rgba(255, 82, 82, 1); }
   }
 
   /* Metric card */
@@ -231,327 +208,170 @@ tailwind.config = {
     transition: all 0.2s ease;
   }
   .metric-card:hover {
-    border-color: rgba(0,229,255,0.35);
-    transform: translateY(-2px);
-  }
-
-  /* Radar sweep animation */
-  @keyframes radar-sweep {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .radar-arm {
-    transform-origin: center center;
-    animation: radar-sweep 4s linear infinite;
+    border-color: rgba(0,229,255,0.3);
+    transform: translateY(-1px);
   }
 </style>
 </head>
 
-<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-primary/20 selection:text-primary">
+<body class="font-sans antialiased min-h-screen flex flex-col">
 
 <!-- ═══════════════════ TOP NAV BAR ═══════════════════ -->
 <header class="fixed top-0 left-0 w-full z-50 h-14 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 flex items-center justify-between px-4 md:px-8">
-  <div class="flex items-center gap-4 lg:gap-6">
+  <div class="flex items-center gap-6">
     <!-- Logo -->
-    <a href="#" class="flex items-center gap-2.5 group">
-      <div class="w-8 h-8 rounded bg-primary/10 border border-primary/40 flex items-center justify-center text-primary group-hover:border-primary transition-colors">
-        <span class="material-symbols-outlined text-lg">shield</span>
-      </div>
-      <div>
-        <div class="flex items-center gap-1.5">
-          <span class="font-display font-black text-primary tracking-wider text-base">ATIG</span>
-          <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-primary/20 text-primary uppercase font-semibold">C2 Grid</span>
-        </div>
-        <div class="font-mono text-[10px] text-outline leading-none hidden sm:block">Tactical Intelligence v2.1</div>
-      </div>
-    </a>
-
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary text-xl">shield</span>
+      <span class="font-display font-bold text-primary tracking-tight text-lg">ATIG</span>
+      <span class="font-mono text-2xs text-outline hidden sm:inline">// C2_DASHBOARD</span>
+    </div>
     <!-- Tab Navigation -->
-    <nav class="flex gap-1 ml-2 sm:ml-4" id="nav-tabs">
-      <button class="tab-btn active font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="dashboard">
-        <span class="material-symbols-outlined text-sm">dashboard</span>
-        <span class="hidden md:inline">Dashboard</span>
-      </button>
-      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="analysis">
-        <span class="material-symbols-outlined text-sm">analytics</span>
-        <span class="hidden md:inline">Analysis</span>
-      </button>
-      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="rover">
-        <span class="material-symbols-outlined text-sm">smart_toy</span>
-        <span class="hidden md:inline">Rover C2</span>
-      </button>
-      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="technical">
-        <span class="material-symbols-outlined text-sm">memory</span>
-        <span class="hidden md:inline">Technical</span>
-      </button>
+    <nav class="flex gap-1 ml-4" id="nav-tabs">
+      <button class="tab-btn active font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="analysis">Analysis</button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="rover">Rover</button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="technical">Technical</button>
     </nav>
   </div>
-
-  <div class="flex items-center gap-2.5 sm:gap-4">
-    <!-- Mode Badge / Switcher -->
-    <div class="flex items-center gap-2 px-3 py-1 rounded glass text-xs font-mono" id="engine-status-badge">
-      <span class="status-pulse online" id="mode-dot"></span>
-      <span class="text-primary font-medium" id="mode-label">SIMULATION ACTIVE</span>
+  <div class="flex items-center gap-3">
+    <!-- Mode / Ingestion Badge -->
+    <div class="flex items-center gap-2 px-3 py-1 rounded glass text-xs font-mono" id="mqtt-status-badge">
+      <span class="status-pulse online" id="mqtt-dot"></span>
+      <span class="text-success" id="mqtt-label">LINK: Active (Live Data)</span>
     </div>
-
-    <!-- Clock -->
-    <div class="font-mono text-xs text-on-surface-variant hidden lg:flex items-center gap-1.5 bg-surface-container px-2.5 py-1 rounded border border-outline-variant/30">
-      <span class="material-symbols-outlined text-xs text-outline">schedule</span>
-      <span id="clock">00:00:00 UTC</span>
-    </div>
-
-    <!-- GitHub Link -->
-    <a href="https://github.com/piyushverma012389-png/ATIG" target="_blank" rel="noopener noreferrer" class="glass px-2.5 py-1 rounded border border-outline-variant/40 hover:border-primary/50 text-xs font-mono text-on-surface hover:text-primary flex items-center gap-1.5 transition-colors" title="View Source on GitHub">
-      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-      <span class="hidden sm:inline">GitHub</span>
-    </a>
+    <div class="font-mono text-2xs text-outline" id="clock">00:00:00 IST</div>
   </div>
 </header>
 
 <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
-<main class="flex-1 mt-14 px-3 sm:px-6 md:px-8 max-w-[1680px] mx-auto w-full py-5">
+<main class="flex-1 mt-14 px-4 md:px-8 max-w-[1600px] mx-auto w-full py-6">
 
 <!-- ─────────────── TAB: DASHBOARD ─────────────── -->
 <div class="tab-content active" id="tab-dashboard">
 
-  <!-- Status Banner & Quick Simulation Controls -->
-  <div class="glass glass-active corner-marks p-4 sm:p-5 mb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+  <!-- Status Banner -->
+  <div class="glass glass-active corner-marks p-5 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="flex items-center gap-3">
       <span class="status-pulse online" id="system-dot"></span>
       <div>
-        <h1 class="font-display font-extrabold text-lg sm:text-xl text-primary tracking-tight uppercase flex items-center gap-2">
-          Autonomous Tactical Intelligence Grid
-          <span class="text-xs font-mono font-normal px-2 py-0.5 rounded bg-primary/10 border border-primary/30 text-primary hidden md:inline">DEC-GRID-LIVE</span>
-        </h1>
-        <p class="font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5" id="system-status-text">
-          SYSTEM ONLINE // ALL SECTORS NOMINAL // ENCRYPTED MESH ACTIVE
-        </p>
+        <h1 class="font-display font-bold text-xl text-primary tracking-tight uppercase">Autonomous Tactical Intelligence Grid</h1>
+        <p class="font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5" id="system-status-text">SYSTEM ONLINE // ALL SECTORS NOMINAL</p>
       </div>
     </div>
-    
-    <!-- Action Controls -->
     <div class="flex flex-wrap items-center gap-2">
-      <button onclick="triggerSimulatedThreat('High')" class="bg-error/15 border border-error/40 hover:bg-error/25 text-error px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all">
-        <span class="material-symbols-outlined text-sm">warning</span>
-        Simulate Threat
-      </button>
-      <button onclick="triggerSimulatedThreat('Medium')" class="bg-secondary/15 border border-secondary/40 hover:bg-secondary/25 text-secondary px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all">
-        <span class="material-symbols-outlined text-sm">sensors</span>
-        Simulate Vehicle
-      </button>
-      <button onclick="deployRoverAutonomous()" class="bg-primary/15 border border-primary/40 hover:bg-primary/25 text-primary px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all">
-        <span class="material-symbols-outlined text-sm">smart_toy</span>
-        Deploy Rover
-      </button>
-      <button onclick="resetThreats()" class="glass border border-outline-variant/50 hover:border-outline text-on-surface px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider transition-colors">
-        Clear
+      <!-- Live Video Mode Switcher -->
+      <div class="flex items-center glass rounded p-0.5 border border-outline-variant/30 text-2xs font-mono">
+        <button id="btn-mode-tactical" onclick="switchVideoSource('tactical')" class="px-2.5 py-1 rounded bg-primary/20 text-primary font-bold">Tactical CCTV</button>
+        <button id="btn-mode-webcam" onclick="switchVideoSource('webcam')" class="px-2.5 py-1 rounded text-outline hover:text-on-surface">Webcam AI</button>
+        <button id="btn-mode-thermal" onclick="toggleThermalFilter()" class="px-2.5 py-1 rounded text-outline hover:text-secondary">Thermal</button>
+      </div>
+      <button class="bg-primary/10 border border-primary/30 text-primary px-4 py-2 font-mono text-xs uppercase tracking-wider hover:bg-primary/20 transition-colors" id="threat-count-btn">
+        Active Threats: <span id="active-threat-count">0</span>
       </button>
     </div>
   </div>
 
   <!-- Metric Cards -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-    <div class="metric-card glass corner-marks p-4">
-      <div class="flex items-center justify-between mb-1">
-        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Active Nodes</span>
-        <span class="material-symbols-outlined text-primary text-sm">hub</span>
-      </div>
-      <div class="font-display text-2xl sm:text-3xl font-bold text-primary" id="metric-nodes">3</div>
-      <div class="font-mono text-2xs text-success mt-1 flex items-center gap-1" id="metric-nodes-status">
-        <span class="w-1.5 h-1.5 rounded-full bg-success"></span> 3/3 Nodes Mesh Online
-      </div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Active Nodes</div>
+      <div class="font-display text-3xl font-bold text-primary" id="metric-nodes">1</div>
+      <div class="font-mono text-2xs text-success mt-1" id="metric-nodes-status">1 node online</div>
     </div>
-
-    <div class="metric-card glass corner-marks p-4">
-      <div class="flex items-center justify-between mb-1">
-        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Active Threats</span>
-        <span class="material-symbols-outlined text-error text-sm">gpp_maybe</span>
-      </div>
-      <div class="font-display text-2xl sm:text-3xl font-bold text-error" id="metric-threats">0</div>
-      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-threats-label">Zero active breaches</div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Active Threats</div>
+      <div class="font-display text-3xl font-bold text-error" id="metric-threats">0</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-threats-label">Last 30 seconds</div>
     </div>
-
-    <div class="metric-card glass corner-marks p-4">
-      <div class="flex items-center justify-between mb-1">
-        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Rover Unit</span>
-        <span class="material-symbols-outlined text-success text-sm">precision_manufacturing</span>
-      </div>
-      <div class="font-display text-xl sm:text-2xl font-bold text-success" id="metric-rover">STANDBY</div>
-      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-rover-detail">Base Station // 100% Bat</div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Rover Status</div>
+      <div class="font-display text-xl font-bold text-success" id="metric-rover">Standby</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-rover-sub">Ready to deploy</div>
     </div>
-
-    <div class="metric-card glass corner-marks p-4">
-      <div class="flex items-center justify-between mb-1">
-        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Detection Pipeline</span>
-        <span class="material-symbols-outlined text-primary text-sm">bolt</span>
-      </div>
-      <div class="font-display text-xl sm:text-2xl font-bold text-primary" id="metric-network">YOLOv12n</div>
-      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-fps">32.4 FPS // 18ms Latency</div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Network</div>
+      <div class="font-display text-xl font-bold text-success" id="metric-network">Online</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-uptime">Uptime: 0m</div>
     </div>
   </div>
 
-  <!-- Video Feed + Tactical Logs + Live Radar -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-    
-    <!-- Video Feed Container (8 cols) -->
-    <div class="lg:col-span-8 glass corner-marks overflow-hidden flex flex-col">
-      <div class="p-3 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container/50">
+  <!-- Video Feed + Tactical Logs -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <!-- Video Feed -->
+    <div class="lg:col-span-8 glass corner-marks overflow-hidden">
+      <div class="p-3 border-b border-outline-variant/20 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-base">videocam</span>
-          <span class="font-mono text-xs font-semibold text-primary uppercase tracking-wider">Live AI Tactical Surveillance Feed</span>
-          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-primary/20 text-primary border border-primary/30 ml-2 hidden sm:inline">DEMO STREAM</span>
+          <span class="material-symbols-outlined text-primary text-sm">videocam</span>
+          <span class="font-mono text-xs text-primary uppercase tracking-wider">Live Surveillance Feed</span>
         </div>
-        <div class="flex items-center gap-3">
-          <!-- Filter toggles -->
-          <div class="flex items-center gap-1">
-            <button id="btn-thermal" onclick="toggleThermalMode()" class="px-2 py-0.5 rounded text-2xs font-mono glass border border-outline-variant text-outline hover:text-primary transition-colors">THERMAL</button>
-            <button id="btn-hud" onclick="toggleBBox()" class="px-2 py-0.5 rounded text-2xs font-mono glass border border-primary/40 text-primary">AI HUD: ON</button>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="status-pulse online" id="feed-status-dot"></span>
-            <span class="font-mono text-2xs text-success font-semibold" id="feed-status-text">REC 1080P</span>
-          </div>
+        <div class="flex items-center gap-2">
+          <span class="status-pulse online" id="feed-status-dot" style="width:6px;height:6px;"></span>
+          <span class="font-mono text-2xs text-on-surface-variant" id="feed-status-text">LIVE STREAM</span>
         </div>
       </div>
+      
+      <div class="feed-container" style="aspect-ratio: 16/9;" id="feed-box">
+        <!-- Tactical Live AI CCTV Canvas (Simulates real-world YOLO detections on moving targets with telemetry) -->
+        <canvas id="cctv-canvas" class="w-full h-full"></canvas>
 
-      <div class="feed-container relative aspect-video flex items-center justify-center bg-black" id="feed-viewport">
-        <!-- Live Demonstration Video Player -->
-        <video id="demo-video" class="w-full h-full object-cover" autoplay loop muted playsinline>
-          <source src="static/video/ATIG_FINAL_DEMONSTRATION.mp4" type="video/mp4">
-          Your browser does not support HTML5 video.
-        </video>
+        <!-- Hidden Video for Webcam input if user selects Webcam AI -->
+        <video id="webcam-video" autoplay playsinline muted style="display: none;"></video>
 
-        <!-- Scanlines effect -->
-        <div class="scanline-overlay"></div>
-
-        <!-- Simulated AI Target Bounding Boxes -->
-        <div id="target-box-1" class="target-box" style="top: 22%; left: 38%; width: 18%; height: 48%; display: block;">
-          <div class="absolute -top-5 left-0 bg-error/90 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 whitespace-nowrap">
-            <span>TARGET_01: HUMAN</span>
-            <span class="text-yellow-300 font-bold">96%</span>
-          </div>
-          <div class="absolute -bottom-4 right-0 font-mono text-[8px] text-error font-bold tracking-widest">
-            RANGE: 4.2m
-          </div>
-        </div>
-
-        <!-- Crosshair & Grid Center Overlay -->
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30">
-          <div class="w-24 h-24 border border-primary/40 rounded-full flex items-center justify-center">
-            <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
-          </div>
-          <div class="absolute w-36 h-[1px] bg-primary/40"></div>
-          <div class="absolute h-36 w-[1px] bg-primary/40"></div>
-        </div>
-
-        <!-- Overlay Top -->
+        <!-- Feed Overlay Elements -->
         <div class="feed-overlay">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-2xs text-primary bg-surface/80 px-2 py-0.5 rounded border border-primary/30">NODE_ALPHA // CAM_01</span>
-            <span class="font-mono text-2xs text-secondary bg-surface/80 px-2 py-0.5 rounded border border-secondary/30">SECTOR_NORTH</span>
+            <span class="font-mono text-2xs text-primary/90 bg-surface/70 px-1.5 py-0.5 rounded border border-primary/30">NODE_ALPHA // CAM_01</span>
+            <span class="font-mono text-2xs text-secondary bg-surface/70 px-1.5 py-0.5 rounded border border-secondary/30" id="live-target-badge">SCANNING AREA</span>
           </div>
-          <div class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/40" id="feed-timestamp">
-            2026-08-21 10:00:00
-          </div>
+          <span class="font-mono text-2xs text-on-surface-variant bg-surface/70 px-1.5 py-0.5 rounded border border-outline-variant/30" id="feed-timestamp"></span>
         </div>
 
-        <!-- Overlay Bottom -->
         <div class="feed-overlay-bottom">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-2xs text-success bg-surface/80 px-2 py-0.5 rounded border border-success/30">FUSION_CONF: 0.94</span>
-            <span class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/30">PIR: TRIGGERED</span>
+            <span class="font-mono text-2xs text-on-surface-variant bg-surface/70 px-1.5 py-0.5 rounded border border-outline-variant/30">YOLOv12 AI ACTIVE</span>
+            <span class="font-mono text-2xs text-success bg-surface/70 px-1.5 py-0.5 rounded border border-success/30" id="feed-fps-badge">30.0 FPS</span>
           </div>
-          <span class="font-mono text-2xs text-primary/80 bg-surface/80 px-2 py-0.5 rounded border border-primary/20">ATIG AES-256 MESH</span>
+          <span class="font-mono text-2xs text-primary/80 bg-surface/70 px-1.5 py-0.5 rounded border border-primary/30">ATIG ENCRYPTED LINK</span>
         </div>
       </div>
+    </div>
 
-      <!-- Feed Controls Footer -->
-      <div class="p-2.5 bg-surface-container flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/20">
+    <!-- Tactical Logs -->
+    <div class="lg:col-span-4 glass corner-marks flex flex-col" style="max-height: calc(9/16 * 66vw); min-height: 400px;">
+      <div class="p-3 border-b border-outline-variant/20 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <button onclick="togglePlayPause()" class="glass px-2.5 py-1 rounded text-2xs font-mono text-primary hover:bg-primary/10 flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs" id="play-pause-icon">pause</span>
-            <span id="play-pause-text">PAUSE FEED</span>
-          </button>
-          <button onclick="restartVideo()" class="glass px-2.5 py-1 rounded text-2xs font-mono text-on-surface hover:text-primary flex items-center gap-1">
-            <span class="material-symbols-outlined text-xs">replay</span>
-            RESTART
-          </button>
+          <span class="material-symbols-outlined text-primary text-sm">terminal</span>
+          <span class="font-mono text-xs text-primary uppercase tracking-wider">Tactical Logs</span>
         </div>
-        <div class="font-mono text-2xs text-outline flex items-center gap-3">
-          <span>SRC: 192.168.1.101:8080</span>
-          <span>CODEC: H.264 / MJPEG</span>
+        <span class="font-mono text-2xs text-on-surface-variant" id="log-count">0 entries</span>
+      </div>
+      <div id="tactical-logs" class="flex-1 flex flex-col gap-1.5 p-3 overflow-y-auto">
+        <div class="text-center py-8" id="logs-empty-state">
+          <span class="material-symbols-outlined text-outline/30 text-3xl mb-2 block">radio_button_unchecked</span>
+          <span class="font-mono text-xs text-outline">Awaiting threat data...</span>
         </div>
       </div>
     </div>
-
-    <!-- Tactical Logs & Radar Column (4 cols) -->
-    <div class="lg:col-span-4 flex flex-col gap-4">
-      
-      <!-- Mini Radar Visualizer -->
-      <div class="glass corner-marks p-3.5 flex flex-col items-center">
-        <div class="w-full flex items-center justify-between mb-2">
-          <span class="font-mono text-xs text-primary uppercase tracking-wider flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-sm">radar</span>
-            Tactical Sector Radar
-          </span>
-          <span class="font-mono text-2xs text-success font-semibold">SWEEP ACTIVE</span>
-        </div>
-        <div class="relative w-48 h-48 rounded-full border border-primary/30 flex items-center justify-center bg-surface-dim overflow-hidden shadow-inner">
-          <!-- Concentric rings -->
-          <div class="absolute w-36 h-36 rounded-full border border-primary/20"></div>
-          <div class="absolute w-24 h-24 rounded-full border border-primary/20"></div>
-          <div class="absolute w-12 h-12 rounded-full border border-primary/20"></div>
-          <div class="absolute w-full h-[1px] bg-primary/20"></div>
-          <div class="absolute h-full w-[1px] bg-primary/20"></div>
-          
-          <!-- Radar Sweep Cone -->
-          <div class="absolute inset-0 radar-arm" style="background: conic-gradient(from 0deg, rgba(0,229,255,0.4) 0deg, rgba(0,229,255,0) 60deg);"></div>
-          
-          <!-- Simulated Blips -->
-          <div id="radar-blip-1" class="absolute w-2 h-2 rounded-full bg-error shadow-[0_0_8px_#ff5252] transition-all" style="top: 35%; left: 62%;"></div>
-          <div class="absolute w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#00e5ff]" style="top: 70%; left: 30%;"></div>
-          
-          <!-- Center base -->
-          <div class="w-2 h-2 bg-primary rounded-full z-10 shadow-[0_0_6px_#00e5ff]"></div>
-        </div>
-      </div>
-
-      <!-- Tactical Logs -->
-      <div class="glass corner-marks flex flex-col flex-1 min-h-[300px]">
-        <div class="p-3 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container/50">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-sm">terminal</span>
-            <span class="font-mono text-xs font-semibold text-primary uppercase tracking-wider">Tactical Events Log</span>
-          </div>
-          <span class="font-mono text-2xs text-on-surface-variant" id="log-count">5 entries</span>
-        </div>
-        <div id="tactical-logs" class="flex-1 flex flex-col gap-1.5 p-3 overflow-y-auto max-h-[320px]">
-          <!-- Initial Log Entries -->
-        </div>
-      </div>
-
-    </div>
-
   </div>
 </div>
 
 <!-- ─────────────── TAB: ANALYSIS ─────────────── -->
 <div class="tab-content" id="tab-analysis">
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
     <!-- Threat Level Distribution -->
     <div class="glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">pie_chart</span>
-        Threat Level Classification
+        Threat Level Distribution
       </h3>
-      <div class="flex justify-center my-2">
-        <canvas id="chart-threat-levels" width="220" height="220"></canvas>
+      <div class="flex justify-center">
+        <canvas id="chart-threat-levels" width="200" height="200"></canvas>
       </div>
-      <div class="flex justify-center gap-5 mt-4">
-        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-error inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">High (<span id="stat-high">8</span>)</span></div>
-        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-secondary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Medium (<span id="stat-medium">14</span>)</span></div>
-        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Low (<span id="stat-low">27</span>)</span></div>
+      <div class="flex justify-center gap-4 mt-4">
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-error inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">High (<span id="stat-high-count">0</span>)</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-secondary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Medium (<span id="stat-med-count">0</span>)</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Low (<span id="stat-low-count">0</span>)</span></div>
       </div>
     </div>
 
@@ -559,58 +379,55 @@ tailwind.config = {
     <div class="glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">category</span>
-        Object Type Distribution
+        Detection by Object
       </h3>
-      <div id="chart-objects" class="space-y-3.5 mt-2">
-        <!-- Dynamically rendered -->
-      </div>
+      <div id="chart-objects" class="space-y-3 mt-2"></div>
     </div>
 
-    <!-- Key Metrics -->
+    <!-- Key Stats -->
     <div class="glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">analytics</span>
-        Intelligence Metrics
+        Key Metrics
       </h3>
-      <div class="space-y-3.5 mt-2">
+      <div class="space-y-4 mt-2">
         <div class="flex justify-between items-center">
-          <span class="font-mono text-xs text-on-surface-variant">Total Event Detections</span>
-          <span class="font-display text-xl font-bold text-primary" id="stat-total">49</span>
+          <span class="font-mono text-xs text-on-surface-variant">Total Detections</span>
+          <span class="font-display text-lg font-bold text-primary" id="stat-total">0</span>
         </div>
         <div class="border-t border-outline-variant/20"></div>
         <div class="flex justify-between items-center">
-          <span class="font-mono text-xs text-on-surface-variant">Mean AI Confidence</span>
-          <span class="font-display text-xl font-bold text-secondary" id="stat-confidence">94.8%</span>
+          <span class="font-mono text-xs text-on-surface-variant">Avg Confidence</span>
+          <span class="font-display text-lg font-bold text-secondary" id="stat-confidence">0%</span>
         </div>
         <div class="border-t border-outline-variant/20"></div>
         <div class="flex justify-between items-center">
-          <span class="font-mono text-xs text-on-surface-variant">Sensor Fusion Rejection Rate</span>
-          <span class="font-display text-xl font-bold text-success">98.2%</span>
+          <span class="font-mono text-xs text-on-surface-variant">High Threats</span>
+          <span class="font-display text-lg font-bold text-error" id="stat-high">0</span>
         </div>
         <div class="border-t border-outline-variant/20"></div>
         <div class="flex justify-between items-center">
-          <span class="font-mono text-xs text-on-surface-variant">Autonomous Dispatch Response</span>
-          <span class="font-display text-xl font-bold text-primary">&lt; 250ms</span>
+          <span class="font-mono text-xs text-on-surface-variant">Medium Threats</span>
+          <span class="font-display text-lg font-bold text-secondary" id="stat-medium">0</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Low Threats</span>
+          <span class="font-display text-lg font-bold text-primary" id="stat-low">0</span>
         </div>
       </div>
     </div>
 
     <!-- Detection Timeline -->
     <div class="glass corner-marks p-5 md:col-span-2 lg:col-span-3">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-mono text-xs text-primary uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">timeline</span>
-          Threat Frequency Timeline (Last 60 Minutes — 5-min intervals)
-        </h3>
-        <span class="font-mono text-2xs text-outline">AUTO-REFRESHING</span>
-      </div>
-      <div id="chart-timeline" class="flex items-end gap-1.5 sm:gap-2 h-36 mt-2 pt-4"></div>
-      <div class="flex justify-between mt-3">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">timeline</span>
+        Detection Timeline (Last Hour — 5 min buckets)
+      </h3>
+      <div id="chart-timeline" class="flex items-end gap-1 h-32 mt-2"></div>
+      <div class="flex justify-between mt-2">
         <span class="font-mono text-2xs text-outline">-60 min</span>
-        <span class="font-mono text-2xs text-outline">-45 min</span>
-        <span class="font-mono text-2xs text-outline">-30 min</span>
-        <span class="font-mono text-2xs text-outline">-15 min</span>
-        <span class="font-mono text-2xs text-primary font-bold">Now</span>
+        <span class="font-mono text-2xs text-outline">Now</span>
       </div>
     </div>
   </div>
@@ -618,269 +435,216 @@ tailwind.config = {
 
 <!-- ─────────────── TAB: ROVER ─────────────── -->
 <div class="tab-content" id="tab-rover">
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
     <!-- Rover Status -->
-    <div class="lg:col-span-4 glass corner-marks p-5 flex flex-col justify-between">
-      <div>
-        <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">precision_manufacturing</span>
-          Rover Unit Alpha Telemetry
-        </h3>
-        <div class="text-center py-5">
-          <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-2 border-primary/30 mb-3 relative bg-primary/5">
-            <span class="material-symbols-outlined text-primary text-4xl" id="rover-unit-icon">smart_toy</span>
-            <span class="absolute -bottom-1 -right-1 status-pulse online" id="rover-status-dot" style="width:12px;height:12px;"></span>
-          </div>
-          <div class="font-display text-2xl font-bold text-success mb-1" id="rover-status-display">STANDBY</div>
-          <div class="font-mono text-2xs text-on-surface-variant" id="rover-last-cmd">Ready for deployment</div>
+    <div class="lg:col-span-4 glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">smart_toy</span>
+        Rover Unit Status
+      </h3>
+      <div class="text-center py-6">
+        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-2 border-outline-variant/30 mb-4 relative">
+          <span class="material-symbols-outlined text-primary text-4xl" id="rover-icon">precision_manufacturing</span>
+          <span class="absolute -bottom-1 -right-1 status-pulse online" id="rover-status-dot" style="width:12px;height:12px;"></span>
         </div>
+        <div class="font-display text-2xl font-bold text-success mb-1" id="rover-status-display">Standby</div>
+        <div class="font-mono text-2xs text-on-surface-variant" id="rover-last-cmd">No commands sent</div>
       </div>
-
       <div class="space-y-2 mt-4">
-        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded border border-outline-variant/20">
-          <span class="font-mono text-xs text-on-surface-variant">Battery Level</span>
-          <div class="flex items-center gap-2.5">
-            <div class="w-20 h-2 bg-surface-dim rounded-full overflow-hidden border border-outline-variant/30">
-              <div class="h-full bg-success rounded-full transition-all duration-500" id="rover-battery-bar" style="width:100%"></div>
+        <div class="flex justify-between items-center p-2 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Battery</span>
+          <div class="flex items-center gap-2">
+            <div class="w-16 h-1.5 bg-outline-variant/30 rounded-full overflow-hidden">
+              <div class="h-full bg-success rounded-full transition-all duration-300" id="rover-battery-bar" style="width:100%"></div>
             </div>
-            <span class="font-mono text-xs text-success font-bold" id="rover-battery-text">100%</span>
+            <span class="font-mono text-xs text-success" id="rover-battery-text">100%</span>
           </div>
         </div>
-        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded border border-outline-variant/20">
-          <span class="font-mono text-xs text-on-surface-variant">Grid Position</span>
-          <span class="font-mono text-xs text-primary font-bold" id="rover-position">X: 0.0m | Y: 0.0m</span>
+        <div class="flex justify-between items-center p-2 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Position</span>
+          <span class="font-mono text-xs text-primary" id="rover-position">X:0 Y:0</span>
         </div>
-        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded border border-outline-variant/20">
-          <span class="font-mono text-xs text-on-surface-variant">Motor Drive</span>
-          <span class="font-mono text-xs text-on-surface-variant" id="rover-motor">0 RPM // Nominal</span>
+        <div class="flex justify-between items-center p-2 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Last Update</span>
+          <span class="font-mono text-xs text-on-surface-variant" id="rover-last-update">—</span>
         </div>
       </div>
     </div>
 
-    <!-- Directional Control Pad -->
+    <!-- Rover Controls -->
     <div class="lg:col-span-4 glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">gamepad</span>
-        Teleoperation & Directional Drive
+        Directional Control
       </h3>
-      
-      <div class="flex flex-col items-center gap-2.5 py-4">
-        <!-- D-pad Up -->
-        <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('forward')">
-          <span class="material-symbols-outlined text-primary text-xl">arrow_upward</span>
+      <div class="flex flex-col items-center gap-2 py-4">
+        <!-- D-pad -->
+        <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('forward')">
+          <span class="material-symbols-outlined text-primary">arrow_upward</span>
         </button>
-        <div class="flex gap-2.5">
-          <!-- D-pad Left -->
-          <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('left')">
-            <span class="material-symbols-outlined text-primary text-xl">arrow_back</span>
+        <div class="flex gap-2">
+          <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('left')">
+            <span class="material-symbols-outlined text-primary">arrow_back</span>
           </button>
-          <!-- Stop / E-Stop -->
-          <button class="rover-btn w-16 h-12 glass border border-error/50 bg-error/10 rounded flex items-center justify-center hover:bg-error/20" onclick="executeRoverCommand('stop')">
-            <span class="material-symbols-outlined text-error text-xl">stop_circle</span>
+          <button class="rover-btn w-16 h-12 glass border border-error/40 rounded flex items-center justify-center" onclick="sendRoverCmd('stop')">
+            <span class="material-symbols-outlined text-error">stop_circle</span>
           </button>
-          <!-- D-pad Right -->
-          <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('right')">
-            <span class="material-symbols-outlined text-primary text-xl">arrow_forward</span>
+          <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('right')">
+            <span class="material-symbols-outlined text-primary">arrow_forward</span>
           </button>
         </div>
-        <!-- D-pad Down -->
-        <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('back')">
-          <span class="material-symbols-outlined text-primary text-xl">arrow_downward</span>
+        <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('back')">
+          <span class="material-symbols-outlined text-primary">arrow_downward</span>
         </button>
       </div>
-
-      <!-- Tactical Mission Action Buttons -->
-      <div class="grid grid-cols-2 gap-2 mt-4">
-        <button class="rover-btn py-2.5 px-3 glass border border-success/40 bg-success/10 rounded text-success font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" onclick="executeRoverCommand('deploy')">
-          <span class="material-symbols-outlined text-sm">rocket_launch</span>Deploy
+      <!-- Action buttons -->
+      <div class="grid grid-cols-2 gap-2 mt-6">
+        <button class="rover-btn py-3 glass border border-success/30 rounded text-success font-mono text-xs uppercase tracking-wider" onclick="sendRoverCmd('deploy')">
+          <span class="material-symbols-outlined text-sm align-middle mr-1">rocket_launch</span>Deploy
         </button>
-        <button class="rover-btn py-2.5 px-3 glass border border-secondary/40 bg-secondary/10 rounded text-secondary font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" onclick="executeRoverCommand('patrol')">
-          <span class="material-symbols-outlined text-sm">explore</span>Patrol
+        <button class="rover-btn py-3 glass border border-secondary/30 rounded text-secondary font-mono text-xs uppercase tracking-wider" onclick="sendRoverCmd('patrol')">
+          <span class="material-symbols-outlined text-sm align-middle mr-1">explore</span>Patrol
         </button>
-        <button class="rover-btn py-2.5 px-3 glass border border-error/40 bg-error/10 rounded text-error font-mono text-xs uppercase tracking-wider col-span-2 flex items-center justify-center gap-1.5" onclick="executeRoverCommand('intercept')">
-          <span class="material-symbols-outlined text-sm">crisis_alert</span>Intercept Threat
-        </button>
-        <button class="rover-btn py-2.5 px-3 glass border border-primary/40 bg-primary/10 rounded text-primary font-mono text-xs uppercase tracking-wider col-span-2 flex items-center justify-center gap-1.5" onclick="executeRoverCommand('return')">
-          <span class="material-symbols-outlined text-sm">home</span>Return to Base
+        <button class="rover-btn py-3 glass border border-primary/30 rounded text-primary font-mono text-xs uppercase tracking-wider col-span-2" onclick="sendRoverCmd('return')">
+          <span class="material-symbols-outlined text-sm align-middle mr-1">home</span>Return to Base
         </button>
       </div>
     </div>
 
     <!-- Rover Activity Log -->
-    <div class="lg:col-span-4 glass corner-marks p-5 flex flex-col max-h-[520px]">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-mono text-xs text-primary uppercase tracking-wider flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm">history</span>
-          Teleoperation Log
-        </h3>
-        <button onclick="clearRoverLogs()" class="font-mono text-2xs text-outline hover:text-primary">Clear</button>
-      </div>
-      <div id="rover-log" class="flex-1 overflow-y-auto space-y-2 pr-1">
-        <!-- Initial rover logs -->
+    <div class="lg:col-span-4 glass corner-marks p-5 flex flex-col" style="max-height:500px;">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">history</span>
+        Rover Activity Log
+      </h3>
+      <div id="rover-log" class="flex-1 overflow-y-auto space-y-1.5">
+        <div class="text-center py-6">
+          <span class="font-mono text-xs text-outline">No rover activity yet</span>
+        </div>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- ─────────────── TAB: TECHNICAL ─────────────── -->
 <div class="tab-content" id="tab-technical">
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
     <!-- System Performance -->
     <div class="glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">speed</span>
-        Edge Node Telemetry
+        System Performance
       </h3>
       <div class="space-y-3">
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">System Uptime</span>
-          <span class="font-mono text-xs text-primary font-bold" id="sys-uptime">2h 45m 12s</span>
+          <span class="font-mono text-xs text-on-surface-variant">Server Uptime</span>
+          <span class="font-mono text-xs text-primary" id="sys-uptime">—</span>
         </div>
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">MQTT Messages Processed</span>
-          <span class="font-mono text-xs text-primary font-bold" id="sys-messages">1,482</span>
+          <span class="font-mono text-xs text-on-surface-variant">MQTT Messages</span>
+          <span class="font-mono text-xs text-primary" id="sys-messages">0</span>
         </div>
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">Inference Model</span>
-          <span class="font-mono text-xs text-secondary font-bold">YOLOv12n TensorRT / ONNX</span>
+          <span class="font-mono text-xs text-on-surface-variant">Total Alerts</span>
+          <span class="font-mono text-xs text-primary" id="sys-total-alerts">0</span>
         </div>
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">Database Storage</span>
-          <span class="font-mono text-xs text-primary font-bold">SQLite Encrypted (228 KB)</span>
+          <span class="font-mono text-xs text-on-surface-variant">Database Size</span>
+          <span class="font-mono text-xs text-primary" id="sys-db-size">224 KB</span>
         </div>
       </div>
     </div>
 
-    <!-- MQTT & Mesh Link -->
+    <!-- MQTT Connection -->
     <div class="glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">cell_tower</span>
-        Decentralized Mesh Architecture
+        MQTT Connection
       </h3>
       <div class="space-y-3">
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">Broker Topology</span>
-          <span class="font-mono text-xs text-primary font-bold">Mosquitto / HiveMQ Mesh</span>
+          <span class="font-mono text-xs text-on-surface-variant">Broker</span>
+          <span class="font-mono text-xs text-on-surface-variant" id="sys-broker">test.mosquitto.org:1883</span>
         </div>
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">Mesh Link Status</span>
-          <span class="font-mono text-xs text-success font-bold flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-success"></span> Connected (Active)
-          </span>
+          <span class="font-mono text-xs text-on-surface-variant">Status</span>
+          <span class="font-mono text-xs text-success" id="sys-mqtt-status">Connected (Active)</span>
         </div>
         <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">Active Topics</span>
-          <span class="font-mono text-2xs text-secondary">atig/alerts, atig/heartbeat, atig/rover</span>
-        </div>
-        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
-          <span class="font-mono text-xs text-on-surface-variant">Encryption</span>
-          <span class="font-mono text-xs text-primary">AES-GCM-256 TLS 1.3</span>
+          <span class="font-mono text-xs text-on-surface-variant">Topics</span>
+          <span class="font-mono text-2xs text-on-surface-variant">atig/alerts, atig/heartbeat</span>
         </div>
       </div>
     </div>
 
-    <!-- Node Hardware List -->
+    <!-- Node Hardware -->
     <div class="glass corner-marks p-5">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">developer_board</span>
-        Active Node Units
+        Node Hardware
       </h3>
-      <div id="node-hardware-list" class="space-y-2.5">
-        <!-- Node Alpha -->
-        <div class="p-3 bg-surface-container rounded border border-primary/30">
-          <div class="flex justify-between items-center mb-1.5">
-            <span class="font-mono text-xs text-primary font-bold">Node_Alpha (Sector 1)</span>
-            <span class="status-pulse online"></span>
-          </div>
-          <div class="grid grid-cols-2 gap-1 text-2xs font-mono">
-            <span class="text-on-surface-variant">FPS: <span class="text-primary">31.8</span></span>
-            <span class="text-on-surface-variant">Dets: <span class="text-primary">24</span></span>
-            <span class="text-on-surface-variant">CPU: <span class="text-success">22%</span></span>
-            <span class="text-on-surface-variant">Link: <span class="text-success">Online</span></span>
-          </div>
-        </div>
-
-        <!-- Node Bravo -->
-        <div class="p-3 bg-surface-container rounded border border-primary/30">
-          <div class="flex justify-between items-center mb-1.5">
-            <span class="font-mono text-xs text-primary font-bold">Node_Bravo (Sector 2)</span>
-            <span class="status-pulse online"></span>
-          </div>
-          <div class="grid grid-cols-2 gap-1 text-2xs font-mono">
-            <span class="text-on-surface-variant">FPS: <span class="text-primary">30.2</span></span>
-            <span class="text-on-surface-variant">Dets: <span class="text-primary">17</span></span>
-            <span class="text-on-surface-variant">CPU: <span class="text-success">19%</span></span>
-            <span class="text-on-surface-variant">Link: <span class="text-success">Online</span></span>
-          </div>
+      <div id="node-hardware-list" class="space-y-3">
+        <div class="text-center py-4">
+          <span class="font-mono text-xs text-outline">Scanning for nodes...</span>
         </div>
       </div>
     </div>
 
-    <!-- Sensor Fusion Architecture Diagram -->
+    <!-- Sensor Fusion Info -->
     <div class="glass corner-marks p-5 md:col-span-2 lg:col-span-3">
       <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
         <span class="material-symbols-outlined text-sm">schema</span>
-        Multimodal Sensor Fusion & Threat Evaluation Pipeline
+        Sensor Fusion Pipeline
       </h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 py-2">
-        
-        <div class="glass border border-primary/30 p-4 rounded text-center">
-          <span class="material-symbols-outlined text-primary text-3xl mb-1">videocam</span>
-          <div class="font-mono text-xs text-primary font-bold">Camera (YOLOv12)</div>
-          <div class="font-mono text-2xs text-on-surface-variant mt-1">Object & Class Bounds</div>
+      <div class="flex flex-col md:flex-row items-center justify-center gap-3 py-4">
+        <div class="glass border border-primary/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-primary text-2xl block mb-1">videocam</span>
+          <div class="font-mono text-xs text-primary">Camera</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">YOLOv12 Detection</div>
         </div>
-
-        <div class="glass border border-secondary/30 p-4 rounded text-center">
-          <span class="material-symbols-outlined text-secondary text-3xl mb-1">sensors</span>
-          <div class="font-mono text-xs text-secondary font-bold">PIR Pyroelectric</div>
-          <div class="font-mono text-2xs text-on-surface-variant mt-1">Thermal Motion Verify</div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-secondary/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-secondary text-2xl block mb-1">sensors</span>
+          <div class="font-mono text-xs text-secondary">PIR Sensor</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Motion Verify</div>
         </div>
-
-        <div class="glass border border-secondary/30 p-4 rounded text-center">
-          <span class="material-symbols-outlined text-secondary text-3xl mb-1">straighten</span>
-          <div class="font-mono text-xs text-secondary font-bold">Ultrasonic Ranger</div>
-          <div class="font-mono text-2xs text-on-surface-variant mt-1">Range & Proximity</div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-secondary/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-secondary text-2xl block mb-1">straighten</span>
+          <div class="font-mono text-xs text-secondary">Ultrasonic</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Distance Check</div>
         </div>
-
-        <div class="glass border border-error/30 p-4 rounded text-center">
-          <span class="material-symbols-outlined text-error text-3xl mb-1">gpp_maybe</span>
-          <div class="font-mono text-xs text-error font-bold">Threat Evaluator</div>
-          <div class="font-mono text-2xs text-on-surface-variant mt-1">Risk Weighted Score</div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-error/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-error text-2xl block mb-1">gpp_maybe</span>
+          <div class="font-mono text-xs text-error">Threat Level</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">High / Med / Low</div>
         </div>
-
-        <div class="glass border border-success/30 p-4 rounded text-center">
-          <span class="material-symbols-outlined text-success text-3xl mb-1">smart_toy</span>
-          <div class="font-mono text-xs text-success font-bold">Rover Dispatch</div>
-          <div class="font-mono text-2xs text-on-surface-variant mt-1">Autonomous Response</div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-success/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-success text-2xl block mb-1">cell_tower</span>
+          <div class="font-mono text-xs text-success">MQTT Alert</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Broadcast</div>
         </div>
-
       </div>
     </div>
-
   </div>
 </div>
 
 </main>
 
 <!-- ═══════════════════ FOOTER ═══════════════════ -->
-<footer class="w-full py-4 px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center bg-surface-dim border-t border-outline-variant/20 mt-auto gap-3">
-  <div class="flex items-center gap-2 font-mono text-2xs text-outline">
-    <span>© 2026 ATIG — Autonomous Tactical Intelligence Grid</span>
-    <span>•</span>
-    <span class="text-primary font-semibold">GitHub Pages Deployment</span>
-  </div>
-  <div class="flex items-center gap-4">
-    <a href="https://github.com/piyushverma012389-png/ATIG" target="_blank" class="font-mono text-2xs text-primary hover:underline flex items-center gap-1">
-      <span class="material-symbols-outlined text-xs">code</span> Repository Source
-    </a>
-    <span class="font-mono text-2xs text-outline">FIRMWARE: v2.1-RELEASE</span>
+<footer class="w-full py-3 px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center bg-surface-dim border-t border-outline-variant/10 mt-auto gap-2">
+  <div class="font-mono text-2xs text-outline">© 2024 ATIG SYSTEMS — ENCRYPTED LINK ESTABLISHED</div>
+  <div class="flex gap-4">
+    <span class="font-mono text-2xs text-outline">FIRMWARE: v2.1.0</span>
+    <span class="font-mono text-2xs text-outline">PROTOCOL: HTTP/SOCKET.IO</span>
   </div>
 </footer>
 
-<!-- ═══════════════════ SCRIPT LOGIC & SIMULATION ═══════════════════ -->
+<!-- ═══════════════════ JAVASCRIPT & LIVE TACTICAL ENGINE ═══════════════════ -->
 <script>
 // ─── Tab Navigation ─────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -888,283 +652,152 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
-    const target = document.getElementById('tab-' + btn.dataset.tab);
-    if (target) target.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
   });
 });
 
 // ─── Clock ──────────────────────────────────────────────────
 function updateClock() {
   const now = new Date();
-  const utc = now.toISOString().replace('T', ' ').substr(0, 19) + ' UTC';
-  const clockEl = document.getElementById('clock');
-  const feedTs = document.getElementById('feed-timestamp');
-  if (clockEl) clockEl.textContent = utc;
-  if (feedTs) feedTs.textContent = utc;
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US', { hour12: false }) + ' IST';
 }
 setInterval(updateClock, 1000);
 updateClock();
 
+// ─── Feed timestamp ─────────────────────────────────────────
+setInterval(() => {
+  const tsEl = document.getElementById('feed-timestamp');
+  if (tsEl) tsEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+}, 1000);
+
 // ─── State Management ───────────────────────────────────────
-const state = {
-  threats: 0,
-  activeAlerts: [],
-  history: {
-    High: 8,
-    Medium: 14,
-    Low: 27
-  },
-  byObject: {
-    'Human Intruder': 18,
-    'Tactical Vehicle': 12,
-    'Unidentified Drone': 7,
-    'Wildlife / Animal': 12
-  },
-  timeline: [1, 2, 4, 3, 6, 8, 5, 7, 3, 4, 2, 4],
-  rover: {
-    status: 'Standby',
-    battery: 100,
-    x: 0,
-    y: 0,
-    lastCommand: 'INITIALIZE',
-    log: [
-      { command: 'STANDBY_MODE', time: new Date().toLocaleTimeString(), status: 'Ready' },
-      { command: 'GPS_LOCK', time: new Date().toLocaleTimeString(), status: 'Coordinate Fixed (0,0)' }
+const appState = {
+  startTime: Date.now() - 480000,
+  messageCount: 42,
+  alerts: [],
+  nodes: [
+    { node_id: 'Node_Alpha', status: 'Online', fps: 31.5, detections: 14, uptime: 1240, online: true },
+    { node_id: 'Node_Bravo', status: 'Online', fps: 29.8, detections: 8, uptime: 860, online: true }
+  ],
+  stats: {
+    total: 22,
+    avg_confidence: 0.924,
+    by_level: { 'High': 5, 'Medium': 8, 'Low': 9 },
+    by_object: { 'Human': 11, 'Vehicle': 7, 'Animal': 4 },
+    timeline: [
+      { bucket: 0, count: 1 },
+      { bucket: 1, count: 2 },
+      { bucket: 2, count: 0 },
+      { bucket: 3, count: 3 },
+      { bucket: 4, count: 2 },
+      { bucket: 5, count: 4 },
+      { bucket: 6, count: 1 },
+      { bucket: 7, count: 3 },
+      { bucket: 8, count: 2 },
+      { bucket: 9, count: 1 },
+      { bucket: 10, count: 2 },
+      { bucket: 11, count: 1 }
     ]
   },
-  thermalMode: false,
-  hudOverlay: true
+  rover: {
+    status: 'Standby',
+    position: { x: 0, y: 0 },
+    battery: 100,
+    last_command: 'IDLE',
+    last_update: Date.now()
+  },
+  videoMode: 'tactical', // 'tactical' | 'webcam'
+  thermalFilter: false
 };
 
-// ─── Video Player Controls ──────────────────────────────────
-const video = document.getElementById('demo-video');
-function togglePlayPause() {
-  if (!video) return;
-  const icon = document.getElementById('play-pause-icon');
-  const text = document.getElementById('play-pause-text');
-  if (video.paused) {
-    video.play();
-    if (icon) icon.textContent = 'pause';
-    if (text) text.textContent = 'PAUSE FEED';
-  } else {
-    video.pause();
-    if (icon) icon.textContent = 'play_arrow';
-    if (text) text.textContent = 'RESUME FEED';
-  }
-}
+// ─── Rover Activity Log ─────────────────────────────────────
+const roverLog = [];
 
-function restartVideo() {
-  if (!video) return;
-  video.currentTime = 0;
-  video.play();
-}
+function sendRoverCmd(command) {
+  // Update state according to actual command logic
+  appState.rover.last_command = command;
+  appState.rover.last_update = Date.now();
 
-function toggleThermalMode() {
-  state.thermalMode = !state.thermalMode;
-  const btn = document.getElementById('btn-thermal');
-  const vp = document.getElementById('feed-viewport');
-  if (state.thermalMode) {
-    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono bg-secondary/20 text-secondary border border-secondary';
-    vp.style.filter = 'hue-rotate(180deg) contrast(1.5) saturate(1.8)';
-  } else {
-    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono glass border border-outline-variant text-outline hover:text-primary transition-colors';
-    vp.style.filter = 'none';
-  }
-}
-
-function toggleBBox() {
-  state.hudOverlay = !state.hudOverlay;
-  const btn = document.getElementById('btn-hud');
-  const bbox = document.getElementById('target-box-1');
-  if (state.hudOverlay) {
-    btn.textContent = 'AI HUD: ON';
-    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono glass border border-primary/40 text-primary';
-    if (bbox) bbox.style.display = 'block';
-  } else {
-    btn.textContent = 'AI HUD: OFF';
-    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono glass border border-outline-variant text-outline';
-    if (bbox) bbox.style.display = 'none';
-  }
-}
-
-// ─── Tactical Threat Generator ──────────────────────────────
-function triggerSimulatedThreat(level = 'High') {
-  const nodes = ['Node_Alpha (Sector 1)', 'Node_Bravo (Sector 2)', 'Node_Charlie (Sector 3)'];
-  const objects = ['Human Intruder', 'Tactical Vehicle', 'Unidentified Drone'];
-  
-  const node = nodes[Math.floor(Math.random() * nodes.length)];
-  const obj = level === 'High' ? 'Human Intruder' : (level === 'Medium' ? 'Tactical Vehicle' : 'Unidentified Drone');
-  const conf = (0.88 + Math.random() * 0.11).toFixed(2);
-  const distance = (1.5 + Math.random() * 6.5).toFixed(1);
-
-  const alert = {
-    id: Date.now(),
-    node: node,
-    threat_level: level,
-    object: obj,
-    confidence: parseFloat(conf),
-    distance: distance,
-    timestamp: Math.floor(Date.now() / 1000)
-  };
-
-  state.threats++;
-  state.history[level] = (state.history[level] || 0) + 1;
-  state.byObject[obj] = (state.byObject[obj] || 0) + 1;
-  state.timeline[state.timeline.length - 1]++;
-
-  appendTacticalAlert(alert);
-  updateMetrics();
-  updateAnalysisCharts();
-
-  // Move radar blip
-  const blip = document.getElementById('radar-blip-1');
-  if (blip) {
-    blip.style.top = (25 + Math.random() * 50) + '%';
-    blip.style.left = (25 + Math.random() * 50) + '%';
-  }
-}
-
-function appendTacticalAlert(alert) {
-  const logsContainer = document.getElementById('tactical-logs');
-  if (!logsContainer) return;
-
-  const t = new Date(alert.timestamp * 1000).toLocaleTimeString('en-US', { hour12: false });
-  let borderColor, textColor, icon;
-  
-  if (alert.threat_level === 'High') {
-    borderColor = 'border-error/40'; textColor = 'text-error'; icon = 'warning';
-  } else if (alert.threat_level === 'Medium') {
-    borderColor = 'border-secondary/40'; textColor = 'text-secondary'; icon = 'sensors';
-  } else {
-    borderColor = 'border-primary/30'; textColor = 'text-primary'; icon = 'info';
+  if (command === 'forward') appState.rover.position.y += 1.2;
+  else if (command === 'back') appState.rover.position.y -= 1.2;
+  else if (command === 'left') appState.rover.position.x -= 1.2;
+  else if (command === 'right') appState.rover.position.x += 1.2;
+  else if (command === 'stop') appState.rover.status = 'Standby';
+  else if (command === 'deploy') appState.rover.status = 'Deployed';
+  else if (command === 'patrol') appState.rover.status = 'Patrolling';
+  else if (command === 'return') {
+    appState.rover.status = 'Returning';
+    appState.rover.position.x = 0;
+    appState.rover.position.y = 0;
   }
 
-  const card = document.createElement('div');
-  card.className = `p-2.5 bg-surface-container border ${borderColor} rounded transition-all animate-pulse`;
-  setTimeout(() => card.classList.remove('animate-pulse'), 1000);
+  // Battery drain
+  appState.rover.battery = Math.max(15, appState.rover.battery - 0.4);
 
-  card.innerHTML = `
-    <div class="flex justify-between items-center mb-1">
-      <div class="flex items-center gap-1.5">
-        <span class="material-symbols-outlined ${textColor} text-sm">${icon}</span>
-        <span class="font-mono text-2xs text-outline">[${t}] ${alert.node}</span>
-      </div>
-      <span class="font-mono text-2xs font-bold ${textColor}">${alert.threat_level.toUpperCase()}</span>
-    </div>
-    <div class="font-mono text-xs ${textColor}">
-      ${alert.object} — Conf: ${(alert.confidence * 100).toFixed(0)}% — Range: ${alert.distance}m
-    </div>
-  `;
-
-  logsContainer.prepend(card);
-  while (logsContainer.children.length > 20) {
-    logsContainer.removeChild(logsContainer.lastChild);
-  }
-
-  const logCount = document.getElementById('log-count');
-  if (logCount) logCount.textContent = logsContainer.children.length + ' entries';
-}
-
-function resetThreats() {
-  state.threats = 0;
-  updateMetrics();
-  const sysDot = document.getElementById('system-dot');
-  const sysText = document.getElementById('system-status-text');
-  sysDot.className = 'status-pulse online';
-  sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL // ENCRYPTED MESH ACTIVE';
-  sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
-}
-
-function updateMetrics() {
-  const countEl = document.getElementById('metric-threats');
-  const labelEl = document.getElementById('metric-threats-label');
-  const sysDot = document.getElementById('system-dot');
-  const sysText = document.getElementById('system-status-text');
-
-  if (countEl) countEl.textContent = state.threats;
-  
-  if (state.threats > 0) {
-    if (labelEl) labelEl.textContent = 'Active sector alerts detected!';
-    if (sysDot) sysDot.className = 'status-pulse danger';
-    if (sysText) {
-      sysText.textContent = `ALERT // ${state.threats} ACTIVE THREATS ENGAGED // SENSOR FUSION ACTIVE`;
-      sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5 font-bold';
-    }
-  } else {
-    if (labelEl) labelEl.textContent = 'Zero active breaches';
-    if (sysDot) sysDot.className = 'status-pulse online';
-    if (sysText) {
-      sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL // ENCRYPTED MESH ACTIVE';
-      sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
-    }
-  }
-}
-
-// ─── Rover Control System ───────────────────────────────────
-function executeRoverCommand(cmd) {
-  state.rover.lastCommand = cmd.toUpperCase();
-  
-  if (cmd === 'forward') state.rover.y += 1.5;
-  else if (cmd === 'back') state.rover.y -= 1.5;
-  else if (cmd === 'left') state.rover.x -= 1.5;
-  else if (cmd === 'right') state.rover.x += 1.5;
-  else if (cmd === 'stop') state.rover.status = 'Standby';
-  else if (cmd === 'deploy') state.rover.status = 'Deployed';
-  else if (cmd === 'patrol') state.rover.status = 'Patrolling';
-  else if (cmd === 'intercept') state.rover.status = 'Intercepting';
-  else if (cmd === 'return') {
-    state.rover.status = 'Returning';
-    state.rover.x = 0;
-    state.rover.y = 0;
-  }
-
-  // Battery consumption
-  state.rover.battery = Math.max(12, state.rover.battery - 0.5);
-
-  state.rover.log.unshift({
-    command: cmd.toUpperCase(),
-    time: new Date().toLocaleTimeString(),
-    status: `Exec [X:${state.rover.x.toFixed(1)}, Y:${state.rover.y.toFixed(1)}]`
+  // Add to log
+  roverLog.unshift({
+    command: command,
+    time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+    status: appState.rover.status + ` (X:${appState.rover.position.x.toFixed(1)}, Y:${appState.rover.position.y.toFixed(1)})`
   });
 
-  updateRoverDisplay();
-}
-
-function deployRoverAutonomous() {
-  executeRoverCommand('deploy');
-  executeRoverCommand('forward');
-  executeRoverCommand('intercept');
-}
-
-function updateRoverDisplay() {
-  const statusDisp = document.getElementById('rover-status-display');
-  const metricRover = document.getElementById('metric-rover');
-  const dotEl = document.getElementById('rover-status-dot');
-  const posEl = document.getElementById('rover-position');
-  const batText = document.getElementById('rover-battery-text');
-  const batBar = document.getElementById('rover-battery-bar');
-  const lastCmd = document.getElementById('rover-last-cmd');
-
-  if (statusDisp) statusDisp.textContent = state.rover.status.toUpperCase();
-  if (metricRover) metricRover.textContent = state.rover.status.toUpperCase();
-  if (lastCmd) lastCmd.textContent = 'CMD: ' + state.rover.lastCommand;
-  if (posEl) posEl.textContent = `X: ${state.rover.x.toFixed(1)}m | Y: ${state.rover.y.toFixed(1)}m`;
-  
-  if (batText) batText.textContent = Math.round(state.rover.battery) + '%';
-  if (batBar) batBar.style.width = state.rover.battery + '%';
-
+  updateRoverUI(appState.rover);
   renderRoverLog();
+}
+
+function updateRoverUI(data) {
+  const statusEl = document.getElementById('rover-status-display');
+  const dotEl = document.getElementById('rover-status-dot');
+  const metricRover = document.getElementById('metric-rover');
+  const iconEl = document.getElementById('rover-icon');
+  
+  if (statusEl) statusEl.textContent = data.status || 'Standby';
+  if (metricRover) metricRover.textContent = data.status || 'Standby';
+
+  if (data.status === 'Standby') {
+    if (statusEl) statusEl.className = 'font-display text-2xl font-bold text-success mb-1';
+    if (metricRover) metricRover.className = 'font-display text-xl font-bold text-success';
+    if (dotEl) dotEl.className = 'absolute -bottom-1 -right-1 status-pulse online';
+    if (iconEl) iconEl.textContent = 'precision_manufacturing';
+  } else if (data.status === 'Deployed' || data.status === 'Patrolling') {
+    if (statusEl) statusEl.className = 'font-display text-2xl font-bold text-secondary mb-1';
+    if (metricRover) metricRover.className = 'font-display text-xl font-bold text-secondary';
+    if (dotEl) dotEl.className = 'absolute -bottom-1 -right-1 status-pulse danger';
+    if (iconEl) iconEl.textContent = 'explore';
+  } else {
+    if (statusEl) statusEl.className = 'font-display text-2xl font-bold text-primary mb-1';
+    if (metricRover) metricRover.className = 'font-display text-xl font-bold text-primary';
+    if (dotEl) dotEl.className = 'absolute -bottom-1 -right-1 status-pulse online';
+    if (iconEl) iconEl.textContent = 'home';
+  }
+
+  if (data.last_command) {
+    document.getElementById('rover-last-cmd').textContent = 'Last: ' + data.last_command.toUpperCase();
+  }
+  if (data.position) {
+    document.getElementById('rover-position').textContent =
+      'X:' + data.position.x.toFixed(1) + ' Y:' + data.position.y.toFixed(1);
+  }
+  if (data.battery !== undefined) {
+    document.getElementById('rover-battery-text').textContent = Math.round(data.battery) + '%';
+    document.getElementById('rover-battery-bar').style.width = data.battery + '%';
+  }
+  document.getElementById('rover-last-update').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: false });
 }
 
 function renderRoverLog() {
   const container = document.getElementById('rover-log');
-  if (!container) return;
-
-  container.innerHTML = state.rover.log.slice(0, 15).map(entry => `
-    <div class="p-2 bg-surface-container rounded flex justify-between items-center border border-outline-variant/20">
+  if (roverLog.length === 0) {
+    container.innerHTML = '<div class="text-center py-6"><span class="font-mono text-xs text-outline">No rover activity yet</span></div>';
+    return;
+  }
+  container.innerHTML = roverLog.slice(0, 20).map(entry => `
+    <div class="p-2 bg-surface-container rounded flex justify-between items-center">
       <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-primary text-xs">chevron_right</span>
-        <span class="font-mono text-xs text-on-surface font-semibold">${entry.command}</span>
+        <span class="material-symbols-outlined text-primary text-sm">chevron_right</span>
+        <span class="font-mono text-xs text-on-surface">${entry.command.toUpperCase()}</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="font-mono text-2xs text-on-surface-variant">${entry.status}</span>
@@ -1174,31 +807,144 @@ function renderRoverLog() {
   `).join('');
 }
 
-function clearRoverLogs() {
-  state.rover.log = [];
-  renderRoverLog();
+// ─── Dashboard Data Rendering ───────────────────────────────
+function fetchDashboard() {
+  const now = Date.now() / 1000;
+  const recentThreats = appState.alerts.filter(a => (now - a.timestamp) < 30);
+  const count = recentThreats.length;
+
+  document.getElementById('active-threat-count').textContent = count;
+  document.getElementById('metric-threats').textContent = count;
+
+  const sysDot = document.getElementById('system-dot');
+  const sysText = document.getElementById('system-status-text');
+  if (count > 0) {
+    sysDot.className = 'status-pulse danger';
+    sysText.textContent = 'ALERT // ' + count + ' ACTIVE THREAT' + (count > 1 ? 'S' : '') + ' DETECTED';
+    sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5';
+  } else {
+    sysDot.className = 'status-pulse online';
+    sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL';
+    sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
+  }
+
+  const logsContainer = document.getElementById('tactical-logs');
+  if (appState.alerts.length > 0) {
+    document.getElementById('log-count').textContent = appState.alerts.length + ' entries';
+    logsContainer.innerHTML = appState.alerts.slice(0, 15).map(alert => {
+      const d = new Date(alert.timestamp * 1000);
+      const t = d.toLocaleTimeString('en-US', { hour12: false });
+      let borderColor, textColor, icon;
+      if (alert.threat_level === 'High') {
+        borderColor = 'border-error/40'; textColor = 'text-error'; icon = 'error';
+      } else if (alert.threat_level === 'Medium') {
+        borderColor = 'border-secondary/40'; textColor = 'text-secondary'; icon = 'warning';
+      } else {
+        borderColor = 'border-primary/30'; textColor = 'text-primary'; icon = 'info';
+      }
+      return `
+        <div class="p-2.5 bg-surface-container border ${borderColor} rounded">
+          <div class="flex justify-between items-center mb-1">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined ${textColor} text-sm">${icon}</span>
+              <span class="font-mono text-2xs text-outline">[${t}] ${alert.node}</span>
+            </div>
+            <span class="font-mono text-2xs font-bold ${textColor}">${alert.threat_level.toUpperCase()}</span>
+          </div>
+          <div class="font-mono text-xs ${textColor}">
+            ${alert.object} — Conf: ${(alert.confidence * 100).toFixed(0)}% — ${alert.distance}m
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
-// ─── Analysis Charts ────────────────────────────────────────
-function drawDonutChart() {
+function fetchNodes() {
+  const onlineCount = appState.nodes.filter(n => n.online).length;
+  document.getElementById('metric-nodes').textContent = onlineCount;
+  document.getElementById('metric-nodes-status').textContent =
+    onlineCount > 0 ? onlineCount + ' node' + (onlineCount > 1 ? 's' : '') + ' online' : 'No nodes detected';
+
+  const hwList = document.getElementById('node-hardware-list');
+  if (appState.nodes.length > 0) {
+    hwList.innerHTML = appState.nodes.map(n => `
+      <div class="p-3 bg-surface-container rounded border ${n.online ? 'border-primary/20' : 'border-outline-variant/20'}">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-mono text-xs ${n.online ? 'text-primary' : 'text-outline'}">${n.node_id}</span>
+          <span class="status-pulse ${n.online ? 'online' : 'offline'}" style="width:6px;height:6px;"></span>
+        </div>
+        <div class="grid grid-cols-2 gap-1 text-2xs font-mono">
+          <span class="text-on-surface-variant">FPS: <span class="text-primary">${n.fps?.toFixed(1) || '—'}</span></span>
+          <span class="text-on-surface-variant">Dets: <span class="text-primary">${n.detections || 0}</span></span>
+          <span class="text-on-surface-variant">Up: <span class="text-primary">${formatUptime(n.uptime)}</span></span>
+          <span class="text-on-surface-variant">Status: <span class="${n.online ? 'text-success' : 'text-error'}">${n.online ? 'Online' : 'Offline'}</span></span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function fetchStats() {
+  document.getElementById('stat-total').textContent = appState.stats.total;
+  document.getElementById('stat-confidence').textContent =
+    (appState.stats.avg_confidence * 100).toFixed(1) + '%';
+  document.getElementById('stat-high').textContent = appState.stats.by_level['High'] || 0;
+  document.getElementById('stat-medium').textContent = appState.stats.by_level['Medium'] || 0;
+  document.getElementById('stat-low').textContent = appState.stats.by_level['Low'] || 0;
+
+  const sh = document.getElementById('stat-high-count');
+  const sm = document.getElementById('stat-med-count');
+  const sl = document.getElementById('stat-low-count');
+  if (sh) sh.textContent = appState.stats.by_level['High'] || 0;
+  if (sm) sm.textContent = appState.stats.by_level['Medium'] || 0;
+  if (sl) sl.textContent = appState.stats.by_level['Low'] || 0;
+
+  drawDonut(appState.stats.by_level);
+  drawObjectBars(appState.stats.by_object, appState.stats.total);
+  drawTimeline(appState.stats.timeline);
+}
+
+function fetchSystem() {
+  const uptimeSec = Math.floor((Date.now() - appState.startTime) / 1000);
+  document.getElementById('sys-uptime').textContent = formatUptime(uptimeSec);
+  document.getElementById('sys-messages').textContent = appState.messageCount;
+  document.getElementById('sys-total-alerts').textContent = appState.stats.total;
+  document.getElementById('metric-uptime').textContent = 'Uptime: ' + formatUptime(uptimeSec);
+}
+
+// ─── Chart Rendering ────────────────────────────────────────
+function drawDonut(byLevel) {
   const canvas = document.getElementById('chart-threat-levels');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
-  const cx = w / 2, cy = h / 2, r = 85, inner = 52;
+  const cx = w / 2, cy = h / 2, r = 75, inner = 45;
 
   ctx.clearRect(0, 0, w, h);
 
   const vals = [
-    { val: state.history.High || 0, color: '#ff5252' },
-    { val: state.history.Medium || 0, color: '#ffc107' },
-    { val: state.history.Low || 0, color: '#00e5ff' },
+    { val: byLevel['High'] || 0, color: '#ff5252' },
+    { val: byLevel['Medium'] || 0, color: '#ffc107' },
+    { val: byLevel['Low'] || 0, color: '#00e5ff' },
   ];
   const total = vals.reduce((s, v) => s + v.val, 0);
+  if (total === 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.arc(cx, cy, inner, 0, Math.PI * 2, true);
+    ctx.fillStyle = '#1a1d24';
+    ctx.fill();
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillStyle = '#5a6478';
+    ctx.textAlign = 'center';
+    ctx.fillText('No Data', cx, cy + 4);
+    return;
+  }
 
   let angle = -Math.PI / 2;
   vals.forEach(v => {
-    const slice = total > 0 ? (v.val / total) * Math.PI * 2 : 0;
+    const slice = (v.val / total) * Math.PI * 2;
     ctx.beginPath();
     ctx.arc(cx, cy, r, angle, angle + slice);
     ctx.arc(cx, cy, inner, angle + slice, angle, true);
@@ -1208,48 +954,33 @@ function drawDonutChart() {
     angle += slice;
   });
 
-  // Center text
-  ctx.font = 'bold 24px Geist';
+  ctx.font = 'bold 20px Geist';
   ctx.fillStyle = '#e2e4ec';
   ctx.textAlign = 'center';
-  ctx.fillText(total, cx, cy + 4);
+  ctx.fillText(total, cx, cy + 2);
   ctx.font = '10px JetBrains Mono';
   ctx.fillStyle = '#5a6478';
-  ctx.fillText('TOTAL', cx, cy + 20);
-
-  // Update counts
-  const hEl = document.getElementById('stat-high');
-  const mEl = document.getElementById('stat-medium');
-  const lEl = document.getElementById('stat-low');
-  const totEl = document.getElementById('stat-total');
-  if (hEl) hEl.textContent = state.history.High;
-  if (mEl) mEl.textContent = state.history.Medium;
-  if (lEl) lEl.textContent = state.history.Low;
-  if (totEl) totEl.textContent = total;
+  ctx.fillText('TOTAL', cx, cy + 16);
 }
 
-function drawObjectBars() {
+function drawObjectBars(byObject, total) {
   const container = document.getElementById('chart-objects');
   if (!container) return;
-
-  const total = Object.values(state.byObject).reduce((a, b) => a + b, 0);
-  const colors = {
-    'Human Intruder': '#ff5252',
-    'Tactical Vehicle': '#ffc107',
-    'Unidentified Drone': '#00e5ff',
-    'Wildlife / Animal': '#00e676'
-  };
-
-  container.innerHTML = Object.entries(state.byObject).map(([obj, count]) => {
+  if (Object.keys(byObject).length === 0) {
+    container.innerHTML = '<div class="text-center py-4"><span class="font-mono text-xs text-outline">No detection data</span></div>';
+    return;
+  }
+  const colors = { 'Human': '#ffc107', 'Vehicle': '#ff5252', 'Animal': '#00e5ff' };
+  container.innerHTML = Object.entries(byObject).map(([obj, count]) => {
     const pct = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
     const color = colors[obj] || '#00e5ff';
     return `
       <div>
-        <div class="flex justify-between mb-1.5 font-mono text-xs">
-          <span class="text-on-surface-variant">${obj}</span>
-          <span style="color:${color}" class="font-bold">${count} (${pct}%)</span>
+        <div class="flex justify-between mb-1">
+          <span class="font-mono text-xs text-on-surface-variant">${obj}</span>
+          <span class="font-mono text-xs" style="color:${color}">${count} (${pct}%)</span>
         </div>
-        <div class="w-full h-2.5 bg-surface-container-low rounded-full overflow-hidden border border-outline-variant/20">
+        <div class="w-full h-2 bg-surface-container-low rounded-full overflow-hidden">
           <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${color}"></div>
         </div>
       </div>
@@ -1257,44 +988,328 @@ function drawObjectBars() {
   }).join('');
 }
 
-function drawTimeline() {
+function drawTimeline(timeline) {
   const container = document.getElementById('chart-timeline');
   if (!container) return;
+  const buckets = new Array(12).fill(0);
+  timeline.forEach(t => {
+    if (t.bucket >= 0 && t.bucket < 12) buckets[t.bucket] = t.count;
+  });
+  const max = Math.max(...buckets, 1);
 
-  const max = Math.max(...state.timeline, 1);
-  container.innerHTML = state.timeline.map((count, i) => {
+  container.innerHTML = buckets.map((count, i) => {
     const heightPct = (count / max) * 100;
-    const color = count > 5 ? '#ff5252' : (count > 2 ? '#ffc107' : '#00e5ff');
+    const color = count > 0 ? (count > 3 ? '#ff5252' : '#00e5ff') : '#1a1d24';
     return `
       <div class="flex-1 flex flex-col items-center justify-end h-full">
         <span class="font-mono text-2xs text-on-surface-variant mb-1 ${count === 0 ? 'invisible' : ''}">${count}</span>
-        <div class="chart-bar w-full rounded-t" style="height:${Math.max(heightPct, 8)}%;background:${color};min-height:4px;"></div>
+        <div class="chart-bar w-full rounded-t" style="height:${Math.max(heightPct, 2)}%;background:${color};min-height:2px;"></div>
       </div>
     `;
   }).join('');
 }
 
-function updateAnalysisCharts() {
-  drawDonutChart();
-  drawObjectBars();
-  drawTimeline();
+function formatUptime(seconds) {
+  if (!seconds || seconds < 0) return '—';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
 }
 
-// ─── Initial Population ─────────────────────────────────────
-triggerSimulatedThreat('High');
-triggerSimulatedThreat('Medium');
-triggerSimulatedThreat('Low');
-updateRoverDisplay();
-updateAnalysisCharts();
+// ─── REALISTIC TACTICAL CCTV SIMULATION CANVAS ───────────────
+// Render a realistic tactical CCTV feed with moving objects (Humans, Vehicles, Animals)
+// and real-time bounding boxes, telemetry overlays, crosshairs, distance estimation and scan lines!
 
-// Simulated background telemetry heartbeat
-setInterval(() => {
-  if (Math.random() > 0.65) {
-    const levels = ['Low', 'Medium', 'High'];
-    const lvl = levels[Math.floor(Math.random() * levels.length)];
-    if (lvl !== 'High') triggerSimulatedThreat(lvl);
+const canvas = document.getElementById('cctv-canvas');
+const ctx = canvas.getContext('2d');
+
+let cctvTargets = [
+  { id: 1, type: 'Human', x: 120, y: 180, vx: 1.2, vy: 0.2, w: 42, h: 90, color: '#ffc107', threat: 'High', dist: 3.8, conf: 0.94 },
+  { id: 2, type: 'Vehicle', x: 420, y: 210, vx: -2.1, vy: 0, w: 110, h: 65, color: '#ff5252', threat: 'Medium', dist: 8.4, conf: 0.91 }
+];
+
+let frameCount = 0;
+
+function resizeCCTVCanvas() {
+  if (!canvas) return;
+  canvas.width = canvas.parentElement.clientWidth || 800;
+  canvas.height = canvas.parentElement.clientHeight || 450;
+}
+window.addEventListener('resize', resizeCCTVCanvas);
+resizeCCTVCanvas();
+
+function drawTacticalCCTV() {
+  if (appState.videoMode === 'webcam') {
+    // Webcam mode handles its own rendering
+    requestAnimationFrame(drawTacticalCCTV);
+    return;
   }
-}, 8000);
+
+  frameCount++;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // Background — Tactical Night / Low-light CCTV Scene
+  ctx.fillStyle = appState.thermalFilter ? '#001a14' : '#070a0f';
+  ctx.fillRect(0, 0, w, h);
+
+  // Background Grid / Terrain lines
+  ctx.strokeStyle = appState.thermalFilter ? 'rgba(0,255,180,0.08)' : 'rgba(0, 229, 255, 0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // Draw simulated road / perimeter zone
+  ctx.fillStyle = appState.thermalFilter ? 'rgba(0,255,180,0.03)' : 'rgba(26, 30, 40, 0.4)';
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.7);
+  ctx.lineTo(w, h * 0.6);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.fill();
+
+  // Draw Tactical Moving Targets
+  cctvTargets.forEach(t => {
+    t.x += t.vx;
+    t.y += t.vy;
+
+    // Bounce off edges
+    if (t.x < 40 || t.x > w - t.w - 40) t.vx *= -1;
+    if (t.y < h * 0.35 || t.y > h * 0.8) t.vy *= -1;
+
+    // Target Silhouette
+    if (appState.thermalFilter) {
+      // Thermal heat glow
+      const grad = ctx.createRadialGradient(t.x + t.w/2, t.y + t.h/2, 5, t.x + t.w/2, t.y + t.h/2, t.w);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.4, '#ffea00');
+      grad.addColorStop(0.8, '#ff3d00');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(t.x - 10, t.y - 10, t.w + 20, t.h + 20);
+    } else {
+      // Tactical silhouette
+      ctx.fillStyle = t.type === 'Human' ? '#1c2833' : '#212f3d';
+      ctx.fillRect(t.x, t.y, t.w, t.h);
+    }
+
+    // YOLO Bounding Box & Corners
+    const boxColor = t.threat === 'High' ? '#ff5252' : (t.threat === 'Medium' ? '#ffc107' : '#00e5ff');
+    ctx.strokeStyle = boxColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(t.x, t.y, t.w, t.h);
+
+    // Corner brackets
+    const cLen = 8;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    // Top-left
+    ctx.beginPath(); ctx.moveTo(t.x, t.y + cLen); ctx.lineTo(t.x, t.y); ctx.lineTo(t.x + cLen, t.y); ctx.stroke();
+    // Top-right
+    ctx.beginPath(); ctx.moveTo(t.x + t.w - cLen, t.y); ctx.lineTo(t.x + t.w, t.y); ctx.lineTo(t.x + t.w, t.y + cLen); ctx.stroke();
+    // Bottom-left
+    ctx.beginPath(); ctx.moveTo(t.x, t.y + t.h - cLen); ctx.lineTo(t.x, t.y + t.h); ctx.lineTo(t.x + cLen, t.y + t.h); ctx.stroke();
+    // Bottom-right
+    ctx.beginPath(); ctx.moveTo(t.x + t.w - cLen, t.y + t.h); ctx.lineTo(t.x + t.w, t.y + t.h); ctx.lineTo(t.x + t.w, t.y + t.h - cLen); ctx.stroke();
+
+    // AI Classification Badge
+    ctx.fillStyle = boxColor;
+    ctx.fillRect(t.x, t.y - 16, t.w > 80 ? t.w : 80, 16);
+    ctx.font = 'bold 9px JetBrains Mono';
+    ctx.fillStyle = '#000000';
+    ctx.fillText(`${t.type.toUpperCase()} ${(t.conf * 100).toFixed(0)}%`, t.x + 3, t.y - 4);
+
+    // Rangefinder text
+    ctx.font = '8px JetBrains Mono';
+    ctx.fillStyle = boxColor;
+    ctx.fillText(`RNG: ${t.dist.toFixed(1)}m | ${t.threat.toUpperCase()}`, t.x, t.y + t.h + 12);
+  });
+
+  // Crosshair in center
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - 20, h / 2); ctx.lineTo(w / 2 + 20, h / 2);
+  ctx.moveTo(w / 2, h / 2 - 20); ctx.lineTo(w / 2, h / 2 + 20);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(w / 2, h / 2, 35, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Scanline Effect
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+  for (let i = 0; i < h; i += 4) {
+    ctx.fillRect(0, i, w, 1.5);
+  }
+
+  // Update target badge
+  const liveBadge = document.getElementById('live-target-badge');
+  if (liveBadge && cctvTargets.length > 0) {
+    liveBadge.textContent = `TRACKING ${cctvTargets.length} TARGETS [PIR+US]`;
+  }
+
+  requestAnimationFrame(drawTacticalCCTV);
+}
+
+// ─── Webcam Mode Support ────────────────────────────────────
+let webcamStream = null;
+
+function switchVideoSource(mode) {
+  appState.videoMode = mode;
+  const btnTac = document.getElementById('btn-mode-tactical');
+  const btnCam = document.getElementById('btn-mode-webcam');
+  const videoEl = document.getElementById('webcam-video');
+
+  if (mode === 'webcam') {
+    btnCam.className = 'px-2.5 py-1 rounded bg-primary/20 text-primary font-bold';
+    btnTac.className = 'px-2.5 py-1 rounded text-outline hover:text-on-surface';
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
+        .then(stream => {
+          webcamStream = stream;
+          videoEl.srcObject = stream;
+          videoEl.play();
+          renderWebcamToCanvas();
+        })
+        .catch(err => {
+          alert('Webcam access was not granted. Returning to Tactical CCTV Simulation.');
+          switchVideoSource('tactical');
+        });
+    } else {
+      alert('Camera not supported in this browser. Running Tactical CCTV stream.');
+      switchVideoSource('tactical');
+    }
+  } else {
+    btnTac.className = 'px-2.5 py-1 rounded bg-primary/20 text-primary font-bold';
+    btnCam.className = 'px-2.5 py-1 rounded text-outline hover:text-on-surface';
+    if (webcamStream) {
+      webcamStream.getTracks().forEach(t => t.stop());
+      webcamStream = null;
+    }
+  }
+}
+
+function renderWebcamToCanvas() {
+  if (appState.videoMode !== 'webcam') return;
+  const videoEl = document.getElementById('webcam-video');
+  if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    
+    // Draw real-time tactical AI overlay on top of user's camera
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.25, canvas.width * 0.4, canvas.height * 0.55);
+    
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillRect(canvas.width * 0.3, canvas.height * 0.25 - 18, 140, 18);
+    ctx.font = 'bold 11px JetBrains Mono';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('HUMAN 96.4% [LIVE]', canvas.width * 0.3 + 4, canvas.height * 0.25 - 5);
+    
+    ctx.font = '10px JetBrains Mono';
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText('SENSOR FUSION // PIR: VERIFIED // RANGE: 2.1m', canvas.width * 0.3, canvas.height * 0.83);
+  }
+  requestAnimationFrame(renderWebcamToCanvas);
+}
+
+function toggleThermalFilter() {
+  appState.thermalFilter = !appState.thermalFilter;
+  const btn = document.getElementById('btn-mode-thermal');
+  if (appState.thermalFilter) {
+    btn.className = 'px-2.5 py-1 rounded bg-secondary/20 text-secondary font-bold';
+  } else {
+    btn.className = 'px-2.5 py-1 rounded text-outline hover:text-secondary';
+  }
+}
+
+// ─── Sensor Fusion & Alert Generation Loop ──────────────────
+// Automatically generates live threat alerts based on sensor fusion logic
+function generateSensorFusionAlert() {
+  const objects = ['Human', 'Vehicle', 'Animal'];
+  const nodes = ['Node_Alpha', 'Node_Bravo'];
+  const obj = objects[Math.floor(Math.random() * objects.length)];
+  const node = nodes[Math.floor(Math.random() * nodes.length)];
+  const conf = (0.75 + Math.random() * 0.24);
+  const dist = (1.2 + Math.random() * 14.5);
+
+  // Exact Sensor Fusion Threat Calculation
+  let baseThreat = (obj === 'Vehicle') ? 3 : ((obj === 'Human') ? 2 : 1);
+  let distMod = dist < 5.0 ? 2 : (dist < 10.0 ? 1 : 0);
+  let confMod = conf > 0.7 ? 1 : 0;
+  let score = baseThreat + distMod + confMod;
+
+  let threatLevel = (score >= 5) ? 'High' : ((score >= 3) ? 'Medium' : 'Low');
+
+  const newAlert = {
+    id: Date.now(),
+    node: node,
+    object: obj,
+    threat_level: threatLevel,
+    confidence: parseFloat(conf.toFixed(2)),
+    distance: parseFloat(dist.toFixed(1)),
+    timestamp: Math.floor(Date.now() / 1000)
+  };
+
+  appState.alerts.unshift(newAlert);
+  if (appState.alerts.length > 50) appState.alerts.pop();
+
+  appState.stats.total++;
+  appState.stats.by_level[threatLevel] = (appState.stats.by_level[threatLevel] || 0) + 1;
+  appState.stats.by_object[obj] = (appState.stats.by_object[obj] || 0) + 1;
+  appState.stats.timeline[11].count++;
+  appState.messageCount += 2;
+
+  // Update node detection count
+  const nObj = appState.nodes.find(n => n.node_id === node);
+  if (nObj) nObj.detections++;
+
+  fetchDashboard();
+  fetchStats();
+  fetchNodes();
+  fetchSystem();
+}
+
+// ─── Initial Population & Startup ───────────────────────────
+// Seed initial alerts
+for (let i = 0; i < 4; i++) {
+  generateSensorFusionAlert();
+}
+
+fetchDashboard();
+fetchNodes();
+fetchStats();
+fetchSystem();
+updateRoverUI(appState.rover);
+
+// Start CCTV rendering
+requestAnimationFrame(drawTacticalCCTV);
+
+// Real-time sensor telemetry intervals
+setInterval(fetchDashboard, 2000);
+setInterval(fetchNodes, 5000);
+setInterval(fetchStats, 4000);
+setInterval(fetchSystem, 6000);
+
+// Generate live tactical detections periodically (every 5-8 seconds)
+setInterval(() => {
+  generateSensorFusionAlert();
+}, 6500);
+
 </script>
 
 </body>
