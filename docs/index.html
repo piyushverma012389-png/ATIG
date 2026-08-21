@@ -5,15 +5,16 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>ATIG — Autonomous Tactical Intelligence Grid</title>
 <meta name="description" content="ATIG Command & Control Dashboard — Real-time AI surveillance, threat detection, and autonomous tactical response."/>
+
 <!-- Tailwind & Socket.io -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
 
-<!-- Real-time In-Browser AI Detection (TensorFlow.js + COCO-SSD) -->
+<!-- TensorFlow.js + COCO-SSD for In-Browser Real-Time AI Detection -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 
-<!-- Fonts & Icons -->
+<!-- Fonts & Material Icons -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 
@@ -65,7 +66,7 @@ tailwind.config = {
     background-color: #0a0c10;
     color: #e2e4ec;
     background-image:
-      radial-gradient(circle at 1px 1px, rgba(0,229,255,0.03) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, rgba(0,229,255,0.035) 1px, transparent 0);
     background-size: 32px 32px;
   }
 
@@ -77,8 +78,8 @@ tailwind.config = {
     border: 1px solid rgba(42, 48, 64, 0.6);
   }
   .glass-active {
-    border-color: rgba(0, 229, 255, 0.2);
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.05), inset 0 1px 0 rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.25);
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.06), inset 0 1px 0 rgba(0, 229, 255, 0.12);
   }
   .glass:hover {
     border-color: rgba(42, 48, 64, 0.9);
@@ -154,7 +155,7 @@ tailwind.config = {
   .tab-btn.active {
     color: #00e5ff;
     border-bottom: 2px solid #00e5ff;
-    background: rgba(0,229,255,0.05);
+    background: rgba(0,229,255,0.06);
   }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
@@ -173,18 +174,13 @@ tailwind.config = {
   .rover-btn:hover { background: rgba(0,229,255,0.15); border-color: rgba(0,229,255,0.4); }
   .rover-btn:active { transform: scale(0.95); background: rgba(0,229,255,0.25); }
 
-  /* Chart bars animation */
-  .chart-bar {
-    transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
   /* Video feed container */
   .feed-container {
     position: relative;
     overflow: hidden;
     background: #080a0e;
   }
-  .feed-container canvas, .feed-container video, .feed-container img {
+  .feed-container canvas, .feed-container video {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -193,8 +189,8 @@ tailwind.config = {
   .feed-overlay {
     position: absolute;
     top: 0; left: 0; right: 0;
-    padding: 8px 12px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(8,10,14,0.8), transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -203,8 +199,8 @@ tailwind.config = {
   .feed-overlay-bottom {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 8px 12px;
-    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    padding: 10px 14px;
+    background: linear-gradient(to top, rgba(8,10,14,0.8), transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -242,10 +238,10 @@ tailwind.config = {
     </nav>
   </div>
   <div class="flex items-center gap-3">
-    <!-- Ingestion Badge -->
+    <!-- Engine Status Badge -->
     <div class="flex items-center gap-2 px-3 py-1 rounded glass text-xs font-mono" id="mqtt-status-badge">
       <span class="status-pulse online" id="mqtt-dot"></span>
-      <span class="text-success" id="mqtt-label">AI ENGINE: ACTIVE</span>
+      <span class="text-success font-medium" id="mqtt-label">LINK: ACTIVE</span>
     </div>
     <div class="font-mono text-2xs text-outline" id="clock">00:00:00 IST</div>
   </div>
@@ -269,20 +265,25 @@ tailwind.config = {
     <div class="flex flex-wrap items-center gap-2">
       <!-- Live Video Mode Switcher -->
       <div class="flex items-center glass rounded p-0.5 border border-outline-variant/30 text-2xs font-mono">
-        <button id="btn-mode-webcam" onclick="switchVideoSource('webcam')" class="px-2.5 py-1 rounded bg-primary/20 text-primary font-bold flex items-center gap-1">
-          <span class="material-symbols-outlined text-xs">videocam</span>
-          Live Webcam AI
-        </button>
-        <button id="btn-mode-tactical" onclick="switchVideoSource('tactical')" class="px-2.5 py-1 rounded text-outline hover:text-on-surface flex items-center gap-1">
+        <button id="btn-mode-tactical" onclick="switchVideoSource('tactical')" class="px-2.5 py-1 rounded bg-primary/20 text-primary font-bold flex items-center gap-1">
           <span class="material-symbols-outlined text-xs">cctv</span>
           Tactical CCTV
+        </button>
+        <button id="btn-mode-webcam" onclick="switchVideoSource('webcam')" class="px-2.5 py-1 rounded text-outline hover:text-on-surface flex items-center gap-1">
+          <span class="material-symbols-outlined text-xs">videocam</span>
+          Live Webcam AI
         </button>
         <button id="btn-mode-thermal" onclick="toggleThermalFilter()" class="px-2.5 py-1 rounded text-outline hover:text-secondary flex items-center gap-1">
           <span class="material-symbols-outlined text-xs">thermostat</span>
           Thermal
         </button>
       </div>
-      <button class="bg-primary/10 border border-primary/30 text-primary px-4 py-2 font-mono text-xs uppercase tracking-wider hover:bg-primary/20 transition-colors" id="threat-count-btn">
+      <!-- Quick Threat Simulator -->
+      <button onclick="triggerManualThreat('High')" class="bg-error/15 border border-error/40 hover:bg-error/25 text-error px-3 py-1.5 font-mono text-xs uppercase tracking-wider rounded transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-xs">warning</span>
+        Simulate Threat
+      </button>
+      <button class="bg-primary/10 border border-primary/30 text-primary px-4 py-1.5 font-mono text-xs uppercase tracking-wider hover:bg-primary/20 transition-colors rounded" id="threat-count-btn">
         Active Threats: <span id="active-threat-count">0</span>
       </button>
     </div>
@@ -292,8 +293,8 @@ tailwind.config = {
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
     <div class="metric-card glass corner-marks p-4 text-center">
       <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Active Nodes</div>
-      <div class="font-display text-3xl font-bold text-primary" id="metric-nodes">1</div>
-      <div class="font-mono text-2xs text-success mt-1" id="metric-nodes-status">1 node online</div>
+      <div class="font-display text-3xl font-bold text-primary" id="metric-nodes">2</div>
+      <div class="font-mono text-2xs text-success mt-1" id="metric-nodes-status">2 nodes online</div>
     </div>
     <div class="metric-card glass corner-marks p-4 text-center">
       <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Active Threats</div>
@@ -320,36 +321,37 @@ tailwind.config = {
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-primary text-sm">videocam</span>
           <span class="font-mono text-xs text-primary uppercase tracking-wider">Live Surveillance Feed</span>
-          <span class="font-mono text-[10px] text-on-surface-variant px-1.5 py-0.2 rounded bg-surface-container border border-outline-variant/30" id="ai-model-status">TF.js Neural Net Loading...</span>
+          <span class="font-mono text-[10px] text-success px-1.5 py-0.2 rounded bg-success/10 border border-success/30 ml-2" id="ai-model-status">AI Vision Core Online</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="status-pulse online" id="feed-status-dot" style="width:6px;height:6px;"></span>
-          <span class="font-mono text-2xs text-success" id="feed-status-text">AI SURVEILLANCE ACTIVE</span>
+          <span class="font-mono text-2xs text-success" id="feed-status-text">FEED ACTIVE</span>
         </div>
       </div>
       
       <div class="feed-container relative" style="aspect-ratio: 16/9;" id="feed-box">
-        <!-- Live AI Canvas -->
+        <!-- Main Surveillance Canvas -->
         <canvas id="cctv-canvas" class="w-full h-full"></canvas>
 
         <!-- Hidden Video for Webcam input -->
         <video id="webcam-video" autoplay playsinline muted style="display: none;"></video>
 
-        <!-- Feed Overlay Elements -->
+        <!-- Feed Overlay Top -->
         <div class="feed-overlay">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-2xs text-primary/90 bg-surface/80 px-2 py-0.5 rounded border border-primary/30 font-semibold" id="cam-id-tag">NODE_ALPHA // CAM_01</span>
-            <span class="font-mono text-2xs text-secondary bg-surface/80 px-2 py-0.5 rounded border border-secondary/30" id="live-target-badge">SCANNING FOR TARGETS</span>
+            <span class="font-mono text-2xs text-primary/90 bg-surface/80 px-2 py-0.5 rounded border border-primary/30 font-semibold" id="cam-id-tag">NODE_ALPHA // CCTV_SECTOR_01</span>
+            <span class="font-mono text-2xs text-secondary bg-surface/80 px-2 py-0.5 rounded border border-secondary/30" id="live-target-badge">TRACKING TARGETS [PIR+US]</span>
           </div>
           <span class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/30" id="feed-timestamp"></span>
         </div>
 
+        <!-- Feed Overlay Bottom -->
         <div class="feed-overlay-bottom">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/30">YOLOv12 / COCO AI</span>
+            <span class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/30">YOLOv12 AI CORE</span>
             <span class="font-mono text-2xs text-success bg-surface/80 px-2 py-0.5 rounded border border-success/30" id="feed-fps-badge">30.0 FPS</span>
           </div>
-          <span class="font-mono text-2xs text-primary/80 bg-surface/80 px-2 py-0.5 rounded border border-primary/30">ATIG ENCRYPTED LINK</span>
+          <span class="font-mono text-2xs text-primary/80 bg-surface/80 px-2 py-0.5 rounded border border-primary/30">ATIG ENCRYPTED MESH</span>
         </div>
       </div>
     </div>
@@ -364,10 +366,7 @@ tailwind.config = {
         <span class="font-mono text-2xs text-on-surface-variant" id="log-count">0 entries</span>
       </div>
       <div id="tactical-logs" class="flex-1 flex flex-col gap-1.5 p-3 overflow-y-auto">
-        <div class="text-center py-8" id="logs-empty-state">
-          <span class="material-symbols-outlined text-outline/30 text-3xl mb-2 block">radio_button_unchecked</span>
-          <span class="font-mono text-xs text-outline">Awaiting threat data...</span>
-        </div>
+        <!-- Initial Entries generated via JS -->
       </div>
     </div>
   </div>
@@ -661,7 +660,7 @@ tailwind.config = {
   </div>
 </footer>
 
-<!-- ═══════════════════ JAVASCRIPT & LIVE AI DETECTION ENGINE ═══════════════════ -->
+<!-- ═══════════════════ JAVASCRIPT LOGIC ═══════════════════ -->
 <script>
 // ─── Tab Navigation ─────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -669,51 +668,48 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    const targetTab = document.getElementById('tab-' + btn.dataset.tab);
+    if (targetTab) targetTab.classList.add('active');
   });
 });
 
 // ─── Clock ──────────────────────────────────────────────────
 function updateClock() {
   const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-US', { hour12: false }) + ' IST';
+  const clk = document.getElementById('clock');
+  const feedTs = document.getElementById('feed-timestamp');
+  if (clk) clk.textContent = now.toLocaleTimeString('en-US', { hour12: false }) + ' IST';
+  if (feedTs) feedTs.textContent = now.toLocaleTimeString('en-US', { hour12: false });
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ─── Feed timestamp ─────────────────────────────────────────
-setInterval(() => {
-  const tsEl = document.getElementById('feed-timestamp');
-  if (tsEl) tsEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
-}, 1000);
-
 // ─── State Management ───────────────────────────────────────
 const appState = {
-  startTime: Date.now() - 480000,
-  messageCount: 42,
+  startTime: Date.now() - 600000,
+  messageCount: 48,
   alerts: [],
   nodes: [
-    { node_id: 'Node_Alpha', status: 'Online', fps: 30.0, detections: 18, uptime: 1420, online: true },
-    { node_id: 'Node_Bravo', status: 'Online', fps: 29.5, detections: 9, uptime: 910, online: true }
+    { node_id: 'Node_Alpha', status: 'Online', fps: 30.5, detections: 21, uptime: 1540, online: true },
+    { node_id: 'Node_Bravo', status: 'Online', fps: 29.8, detections: 12, uptime: 980, online: true }
   ],
   stats: {
-    total: 27,
-    avg_confidence: 0.942,
-    by_level: { 'High': 7, 'Medium': 9, 'Low': 11 },
-    by_object: { 'Human': 14, 'Vehicle': 8, 'Animal': 5 },
+    total: 33,
+    avg_confidence: 0.948,
+    by_level: { 'High': 8, 'Medium': 12, 'Low': 13 },
+    by_object: { 'Human': 16, 'Vehicle': 11, 'Animal': 6 },
     timeline: [
       { bucket: 0, count: 1 },
       { bucket: 1, count: 2 },
       { bucket: 2, count: 1 },
-      { bucket: 3, count: 3 },
+      { bucket: 3, count: 4 },
       { bucket: 4, count: 2 },
       { bucket: 5, count: 5 },
-      { bucket: 6, count: 2 },
-      { bucket: 7, count: 3 },
-      { bucket: 8, count: 4 },
-      { bucket: 9, count: 1 },
-      { bucket: 10, count: 2 },
+      { bucket: 6, count: 3 },
+      { bucket: 7, count: 4 },
+      { bucket: 8, count: 5 },
+      { bucket: 9, count: 2 },
+      { bucket: 10, count: 3 },
       { bucket: 11, count: 1 }
     ]
   },
@@ -724,24 +720,63 @@ const appState = {
     last_command: 'IDLE',
     last_update: Date.now()
   },
-  videoMode: 'webcam', // Start with webcam
+  videoMode: 'tactical', // Default to 'tactical' so it works instantly without webcam permissions
   thermalFilter: false,
   aiModelLoaded: false,
   liveDetections: [],
   lastAlertTime: 0
 };
 
-// ─── Rover Control & Telemetry ──────────────────────────────
+// ─── Corner Bracket Drawing Utility (Safe, Zero-Error) ──────
+function drawTacticalBrackets(targetCtx, x, y, w, h, len, color, lineWidth) {
+  targetCtx.save();
+  targetCtx.strokeStyle = color || '#ffffff';
+  targetCtx.lineWidth = lineWidth || 2;
+
+  const bLen = Math.min(len || 10, Math.min(w, h) / 3);
+
+  // Top Left
+  targetCtx.beginPath();
+  targetCtx.moveTo(x, y + bLen);
+  targetCtx.lineTo(x, y);
+  targetCtx.lineTo(x + bLen, y);
+  targetCtx.stroke();
+
+  // Top Right
+  targetCtx.beginPath();
+  targetCtx.moveTo(x + w - bLen, y);
+  targetCtx.lineTo(x + w, y);
+  targetCtx.lineTo(x + w, y + bLen);
+  targetCtx.stroke();
+
+  // Bottom Left
+  targetCtx.beginPath();
+  targetCtx.moveTo(x, y + h - bLen);
+  targetCtx.lineTo(x, y + h);
+  targetCtx.lineTo(x + bLen, y + h);
+  targetCtx.stroke();
+
+  // Bottom Right
+  targetCtx.beginPath();
+  targetCtx.moveTo(x + w - bLen, y + h);
+  targetCtx.lineTo(x + w, y + h);
+  targetCtx.lineTo(x + w, y + h - bLen);
+  targetCtx.stroke();
+
+  targetCtx.restore();
+}
+
+// ─── Rover Teleoperation ────────────────────────────────────
 const roverLog = [];
 
 function sendRoverCmd(command) {
   appState.rover.last_command = command;
   appState.rover.last_update = Date.now();
 
-  if (command === 'forward') appState.rover.position.y += 1.2;
-  else if (command === 'back') appState.rover.position.y -= 1.2;
-  else if (command === 'left') appState.rover.position.x -= 1.2;
-  else if (command === 'right') appState.rover.position.x += 1.2;
+  if (command === 'forward') appState.rover.position.y += 1.5;
+  else if (command === 'back') appState.rover.position.y -= 1.5;
+  else if (command === 'left') appState.rover.position.x -= 1.5;
+  else if (command === 'right') appState.rover.position.x += 1.5;
   else if (command === 'stop') appState.rover.status = 'Standby';
   else if (command === 'deploy') appState.rover.status = 'Deployed';
   else if (command === 'patrol') appState.rover.status = 'Patrolling';
@@ -751,7 +786,7 @@ function sendRoverCmd(command) {
     appState.rover.position.y = 0;
   }
 
-  appState.rover.battery = Math.max(12, appState.rover.battery - 0.4);
+  appState.rover.battery = Math.max(10, appState.rover.battery - 0.5);
 
   roverLog.unshift({
     command: command,
@@ -790,22 +825,26 @@ function updateRoverUI(data) {
   }
 
   if (data.last_command) {
-    document.getElementById('rover-last-cmd').textContent = 'Last: ' + data.last_command.toUpperCase();
+    const cmdEl = document.getElementById('rover-last-cmd');
+    if (cmdEl) cmdEl.textContent = 'Last: ' + data.last_command.toUpperCase();
   }
   if (data.position) {
-    document.getElementById('rover-position').textContent =
-      'X:' + data.position.x.toFixed(1) + ' Y:' + data.position.y.toFixed(1);
+    const posEl = document.getElementById('rover-position');
+    if (posEl) posEl.textContent = 'X:' + data.position.x.toFixed(1) + ' Y:' + data.position.y.toFixed(1);
   }
   if (data.battery !== undefined) {
-    document.getElementById('rover-battery-text').textContent = Math.round(data.battery) + '%';
-    document.getElementById('rover-battery-bar').style.width = data.battery + '%';
+    const batText = document.getElementById('rover-battery-text');
+    const batBar = document.getElementById('rover-battery-bar');
+    if (batText) batText.textContent = Math.round(data.battery) + '%';
+    if (batBar) batBar.style.width = data.battery + '%';
   }
-  document.getElementById('rover-last-update').textContent =
-    new Date().toLocaleTimeString('en-US', { hour12: false });
+  const updEl = document.getElementById('rover-last-update');
+  if (updEl) updEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
 }
 
 function renderRoverLog() {
   const container = document.getElementById('rover-log');
+  if (!container) return;
   if (roverLog.length === 0) {
     container.innerHTML = '<div class="text-center py-6"><span class="font-mono text-xs text-outline">No rover activity yet</span></div>';
     return;
@@ -830,24 +869,30 @@ function fetchDashboard() {
   const recentThreats = appState.alerts.filter(a => (now - a.timestamp) < 30);
   const count = recentThreats.length;
 
-  document.getElementById('active-threat-count').textContent = count;
-  document.getElementById('metric-threats').textContent = count;
+  const countEl = document.getElementById('active-threat-count');
+  const metricEl = document.getElementById('metric-threats');
+  if (countEl) countEl.textContent = count;
+  if (metricEl) metricEl.textContent = count;
 
   const sysDot = document.getElementById('system-dot');
   const sysText = document.getElementById('system-status-text');
-  if (count > 0) {
-    sysDot.className = 'status-pulse danger';
-    sysText.textContent = 'ALERT // ' + count + ' ACTIVE THREAT' + (count > 1 ? 'S' : '') + ' DETECTED';
-    sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5 font-bold';
-  } else {
-    sysDot.className = 'status-pulse online';
-    sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL';
-    sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
+  if (sysDot && sysText) {
+    if (count > 0) {
+      sysDot.className = 'status-pulse danger';
+      sysText.textContent = 'ALERT // ' + count + ' ACTIVE THREAT' + (count > 1 ? 'S' : '') + ' DETECTED';
+      sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5 font-bold';
+    } else {
+      sysDot.className = 'status-pulse online';
+      sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL';
+      sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
+    }
   }
 
   const logsContainer = document.getElementById('tactical-logs');
-  if (appState.alerts.length > 0) {
-    document.getElementById('log-count').textContent = appState.alerts.length + ' entries';
+  if (logsContainer && appState.alerts.length > 0) {
+    const lCnt = document.getElementById('log-count');
+    if (lCnt) lCnt.textContent = appState.alerts.length + ' entries';
+
     logsContainer.innerHTML = appState.alerts.slice(0, 15).map(alert => {
       const d = new Date(alert.timestamp * 1000);
       const t = d.toLocaleTimeString('en-US', { hour12: false });
@@ -879,12 +924,13 @@ function fetchDashboard() {
 
 function fetchNodes() {
   const onlineCount = appState.nodes.filter(n => n.online).length;
-  document.getElementById('metric-nodes').textContent = onlineCount;
-  document.getElementById('metric-nodes-status').textContent =
-    onlineCount > 0 ? onlineCount + ' node' + (onlineCount > 1 ? 's' : '') + ' online' : 'No nodes detected';
+  const mNodes = document.getElementById('metric-nodes');
+  const mStatus = document.getElementById('metric-nodes-status');
+  if (mNodes) mNodes.textContent = onlineCount;
+  if (mStatus) mStatus.textContent = onlineCount > 0 ? onlineCount + ' node' + (onlineCount > 1 ? 's' : '') + ' online' : 'No nodes detected';
 
   const hwList = document.getElementById('node-hardware-list');
-  if (appState.nodes.length > 0) {
+  if (hwList && appState.nodes.length > 0) {
     hwList.innerHTML = appState.nodes.map(n => `
       <div class="p-3 bg-surface-container rounded border ${n.online ? 'border-primary/20' : 'border-outline-variant/20'}">
         <div class="flex justify-between items-center mb-2">
@@ -903,12 +949,17 @@ function fetchNodes() {
 }
 
 function fetchStats() {
-  document.getElementById('stat-total').textContent = appState.stats.total;
-  document.getElementById('stat-confidence').textContent =
-    (appState.stats.avg_confidence * 100).toFixed(1) + '%';
-  document.getElementById('stat-high').textContent = appState.stats.by_level['High'] || 0;
-  document.getElementById('stat-medium').textContent = appState.stats.by_level['Medium'] || 0;
-  document.getElementById('stat-low').textContent = appState.stats.by_level['Low'] || 0;
+  const sTot = document.getElementById('stat-total');
+  const sConf = document.getElementById('stat-confidence');
+  const sH = document.getElementById('stat-high');
+  const sM = document.getElementById('stat-medium');
+  const sL = document.getElementById('stat-low');
+
+  if (sTot) sTot.textContent = appState.stats.total;
+  if (sConf) sConf.textContent = (appState.stats.avg_confidence * 100).toFixed(1) + '%';
+  if (sH) sH.textContent = appState.stats.by_level['High'] || 0;
+  if (sM) sM.textContent = appState.stats.by_level['Medium'] || 0;
+  if (sL) sL.textContent = appState.stats.by_level['Low'] || 0;
 
   const sh = document.getElementById('stat-high-count');
   const sm = document.getElementById('stat-med-count');
@@ -924,21 +975,26 @@ function fetchStats() {
 
 function fetchSystem() {
   const uptimeSec = Math.floor((Date.now() - appState.startTime) / 1000);
-  document.getElementById('sys-uptime').textContent = formatUptime(uptimeSec);
-  document.getElementById('sys-messages').textContent = appState.messageCount;
-  document.getElementById('sys-total-alerts').textContent = appState.stats.total;
-  document.getElementById('metric-uptime').textContent = 'Uptime: ' + formatUptime(uptimeSec);
+  const uEl = document.getElementById('sys-uptime');
+  const mEl = document.getElementById('sys-messages');
+  const tEl = document.getElementById('sys-total-alerts');
+  const muEl = document.getElementById('metric-uptime');
+
+  if (uEl) uEl.textContent = formatUptime(uptimeSec);
+  if (mEl) mEl.textContent = appState.messageCount;
+  if (tEl) tEl.textContent = appState.stats.total;
+  if (muEl) muEl.textContent = 'Uptime: ' + formatUptime(uptimeSec);
 }
 
 // ─── Chart Rendering ────────────────────────────────────────
 function drawDonut(byLevel) {
-  const canvas = document.getElementById('chart-threat-levels');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
+  const canvasEl = document.getElementById('chart-threat-levels');
+  if (!canvasEl) return;
+  const dCtx = canvasEl.getContext('2d');
+  const w = canvasEl.width, h = canvasEl.height;
   const cx = w / 2, cy = h / 2, r = 75, inner = 45;
 
-  ctx.clearRect(0, 0, w, h);
+  dCtx.clearRect(0, 0, w, h);
 
   const vals = [
     { val: byLevel['High'] || 0, color: '#ff5252' },
@@ -947,37 +1003,37 @@ function drawDonut(byLevel) {
   ];
   const total = vals.reduce((s, v) => s + v.val, 0);
   if (total === 0) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.arc(cx, cy, inner, 0, Math.PI * 2, true);
-    ctx.fillStyle = '#1a1d24';
-    ctx.fill();
-    ctx.font = '12px JetBrains Mono';
-    ctx.fillStyle = '#5a6478';
-    ctx.textAlign = 'center';
-    ctx.fillText('No Data', cx, cy + 4);
+    dCtx.beginPath();
+    dCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    dCtx.arc(cx, cy, inner, 0, Math.PI * 2, true);
+    dCtx.fillStyle = '#1a1d24';
+    dCtx.fill();
+    dCtx.font = '12px JetBrains Mono';
+    dCtx.fillStyle = '#5a6478';
+    dCtx.textAlign = 'center';
+    dCtx.fillText('No Data', cx, cy + 4);
     return;
   }
 
   let angle = -Math.PI / 2;
   vals.forEach(v => {
     const slice = (v.val / total) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, angle, angle + slice);
-    ctx.arc(cx, cy, inner, angle + slice, angle, true);
-    ctx.closePath();
-    ctx.fillStyle = v.color;
-    ctx.fill();
+    dCtx.beginPath();
+    dCtx.arc(cx, cy, r, angle, angle + slice);
+    dCtx.arc(cx, cy, inner, angle + slice, angle, true);
+    dCtx.closePath();
+    dCtx.fillStyle = v.color;
+    dCtx.fill();
     angle += slice;
   });
 
-  ctx.font = 'bold 20px Geist';
-  ctx.fillStyle = '#e2e4ec';
-  ctx.textAlign = 'center';
-  ctx.fillText(total, cx, cy + 2);
-  ctx.font = '10px JetBrains Mono';
-  ctx.fillStyle = '#5a6478';
-  ctx.fillText('TOTAL', cx, cy + 16);
+  dCtx.font = 'bold 20px Geist';
+  dCtx.fillStyle = '#e2e4ec';
+  dCtx.textAlign = 'center';
+  dCtx.fillText(total, cx, cy + 2);
+  dCtx.font = '10px JetBrains Mono';
+  dCtx.fillStyle = '#5a6478';
+  dCtx.fillText('TOTAL', cx, cy + 16);
 }
 
 function drawObjectBars(byObject, total) {
@@ -1036,19 +1092,20 @@ function formatUptime(seconds) {
   return s + 's';
 }
 
-// ─── TENSORFLOW.JS + WEBCAM REAL-TIME OBJECT DETECTION ───────
+// ─── TACTICAL CCTV SIMULATION & WEBCAM AI CANVAS ─────────────
 const canvas = document.getElementById('cctv-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 const videoEl = document.getElementById('webcam-video');
 
 let cocoModel = null;
 let isDetecting = false;
 let webcamStream = null;
 
-// Tactical Synthetic Targets for CCTV Simulation Mode
+// Dynamic Moving Surveillance Targets for CCTV Simulation
 let cctvTargets = [
-  { id: 1, type: 'Human', x: 120, y: 180, vx: 1.2, vy: 0.2, w: 45, h: 95, color: '#ffc107', threat: 'High', dist: 3.2, conf: 0.95 },
-  { id: 2, type: 'Vehicle', x: 420, y: 210, vx: -2.1, vy: 0, w: 115, h: 70, color: '#ff5252', threat: 'Medium', dist: 7.8, conf: 0.91 }
+  { id: 1, type: 'Human', x: 120, y: 180, vx: 1.2, vy: 0.3, w: 45, h: 95, threat: 'High', dist: 3.4, conf: 0.96 },
+  { id: 2, type: 'Vehicle', x: 420, y: 220, vx: -1.8, vy: 0.1, w: 110, h: 65, threat: 'Medium', dist: 7.2, conf: 0.92 },
+  { id: 3, type: 'Animal', x: 280, y: 140, vx: 0.8, vy: -0.4, w: 50, h: 40, threat: 'Low', dist: 11.8, conf: 0.88 }
 ];
 
 function resizeCanvas() {
@@ -1059,37 +1116,35 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Load TensorFlow COCO-SSD Model
+// Load TensorFlow.js COCO-SSD asynchronously
 async function initAIModel() {
   const statusEl = document.getElementById('ai-model-status');
   try {
     if (window.cocoSsd) {
-      if (statusEl) statusEl.textContent = 'Loading COCO-SSD Neural Weights...';
+      if (statusEl) statusEl.textContent = 'Loading AI Neural Weights...';
       cocoModel = await cocoSsd.load();
       appState.aiModelLoaded = true;
       if (statusEl) {
-        statusEl.textContent = 'YOLO/COCO Engine Online';
-        statusEl.className = 'font-mono text-[10px] text-success px-1.5 py-0.2 rounded bg-success/10 border border-success/30';
+        statusEl.textContent = 'AI Vision Core Online';
+        statusEl.className = 'font-mono text-[10px] text-success px-1.5 py-0.2 rounded bg-success/10 border border-success/30 ml-2';
       }
-      console.log("[AI] TensorFlow.js COCO-SSD model loaded successfully.");
     }
   } catch (err) {
-    console.warn("[AI] COCO-SSD load warning, using optical motion fallback:", err);
+    console.warn("[AI] COCO-SSD loading fallback:", err);
     if (statusEl) {
-      statusEl.textContent = 'Optical Motion Tracker Online';
-      statusEl.className = 'font-mono text-[10px] text-primary px-1.5 py-0.2 rounded bg-primary/10 border border-primary/30';
+      statusEl.textContent = 'AI Optical Tracker Online';
+      statusEl.className = 'font-mono text-[10px] text-primary px-1.5 py-0.2 rounded bg-primary/10 border border-primary/30 ml-2';
     }
   }
 }
 
-// Start Webcam Feed
+// Start Webcam Stream
 async function startWebcam() {
-  const videoEl = document.getElementById('webcam-video');
   const camTag = document.getElementById('cam-id-tag');
   if (camTag) camTag.textContent = 'NODE_ALPHA // LIVE_WEBCAM';
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert("Webcam API not supported in this browser. Switching to Tactical CCTV mode.");
+    console.warn("Webcam not available, staying in Tactical CCTV mode.");
     switchVideoSource('tactical');
     return;
   }
@@ -1100,24 +1155,23 @@ async function startWebcam() {
       audio: false
     });
     webcamStream = stream;
-    videoEl.srcObject = stream;
-    await videoEl.play();
-    console.log("[Webcam] Stream started successfully.");
-    
-    // Start detection loop
+    if (videoEl) {
+      videoEl.srcObject = stream;
+      await videoEl.play();
+    }
+    console.log("[Webcam] Stream connected successfully.");
     runWebcamInference();
   } catch (err) {
-    console.error("[Webcam] Camera access error:", err);
-    alert("Camera permission denied or camera not available. Switching to Tactical CCTV.");
+    console.warn("[Webcam] Camera permission declined or not accessible:", err);
     switchVideoSource('tactical');
   }
 }
 
-// Switch video source
+// Switch video source between Tactical CCTV and Live Webcam
 function switchVideoSource(mode) {
   appState.videoMode = mode;
-  const btnWebcam = document.getElementById('btn-mode-webcam');
   const btnTac = document.getElementById('btn-mode-tactical');
+  const btnWebcam = document.getElementById('btn-mode-webcam');
   const camTag = document.getElementById('cam-id-tag');
 
   if (mode === 'webcam') {
@@ -1135,13 +1189,16 @@ function switchVideoSource(mode) {
   }
 }
 
+// Toggle Thermal / Night-Vision Filter
 function toggleThermalFilter() {
   appState.thermalFilter = !appState.thermalFilter;
   const btn = document.getElementById('btn-mode-thermal');
-  if (appState.thermalFilter) {
-    btn.className = 'px-2.5 py-1 rounded bg-secondary/20 text-secondary font-bold flex items-center gap-1';
-  } else {
-    btn.className = 'px-2.5 py-1 rounded text-outline hover:text-secondary flex items-center gap-1';
+  if (btn) {
+    if (appState.thermalFilter) {
+      btn.className = 'px-2.5 py-1 rounded bg-secondary/20 text-secondary font-bold flex items-center gap-1';
+    } else {
+      btn.className = 'px-2.5 py-1 rounded text-outline hover:text-secondary flex items-center gap-1';
+    }
   }
 }
 
@@ -1149,28 +1206,30 @@ function toggleThermalFilter() {
 async function runWebcamInference() {
   if (appState.videoMode !== 'webcam') return;
 
-  if (videoEl.readyState >= 2 && cocoModel && !isDetecting) {
+  if (videoEl && videoEl.readyState >= 2 && cocoModel && !isDetecting) {
     isDetecting = true;
     try {
       const predictions = await cocoModel.detect(videoEl);
       processAIDetections(predictions);
     } catch (e) {
-      console.warn("Detection frame skip:", e);
+      console.warn("Frame inference skip:", e);
     }
     isDetecting = false;
   }
 
-  // Poll inference every 120ms (smooth ~8-10 FPS AI on top of 60 FPS video render)
-  setTimeout(runWebcamInference, 120);
+  setTimeout(runWebcamInference, 140);
 }
 
-// Process Real-time Detections & Sensor Fusion
+// Process Real-time Detections & Trigger Sensor Fusion
 function processAIDetections(predictions) {
   const detections = [];
   const targetBadge = document.getElementById('live-target-badge');
 
   if (!predictions || predictions.length === 0) {
-    if (targetBadge) targetBadge.textContent = 'SCANNING // NO TARGETS';
+    if (targetBadge) {
+      targetBadge.textContent = 'SCANNING // NO TARGETS';
+      targetBadge.className = 'font-mono text-2xs text-secondary bg-surface/80 px-2 py-0.5 rounded border border-secondary/30';
+    }
     appState.liveDetections = [];
     return;
   }
@@ -1181,7 +1240,6 @@ function processAIDetections(predictions) {
   const cH = canvas.height;
 
   predictions.forEach(p => {
-    // Map COCO classes to ATIG Tactical categories
     let category = 'Tactical Object';
     let threatLevel = 'Low';
     const cName = p.class.toLowerCase();
@@ -1196,18 +1254,16 @@ function processAIDetections(predictions) {
       category = p.class.charAt(0).toUpperCase() + p.class.slice(1);
     }
 
-    // Scale coordinates to canvas
     const x = (p.bbox[0] / vW) * cW;
     const y = (p.bbox[1] / vH) * cH;
     const w = (p.bbox[2] / vW) * cW;
     const h = (p.bbox[3] / vH) * cH;
 
-    // Estimate distance based on box size
     const boxHeightPct = h / cH;
     let distance = (1.7 / Math.max(0.1, boxHeightPct * 2.5)).toFixed(1);
     distance = Math.max(0.8, Math.min(15.0, parseFloat(distance)));
 
-    // Exact Sensor Fusion Threat Calculation
+    // Sensor Fusion Threat Logic
     let baseThreat = (category === 'Vehicle') ? 3 : ((category === 'Human') ? 2 : 1);
     let distMod = distance < 3.5 ? 2 : (distance < 7.0 ? 1 : 0);
     let confMod = p.score > 0.75 ? 1 : 0;
@@ -1234,7 +1290,7 @@ function processAIDetections(predictions) {
     targetBadge.className = 'font-mono text-2xs text-error bg-surface/80 px-2 py-0.5 rounded border border-error/40 font-bold';
   }
 
-  // Trigger alert if high/medium threat detected (rate limited to once every 2.5s)
+  // Trigger alert if high/medium threat detected
   const now = Date.now();
   if (now - appState.lastAlertTime > 2500 && detections.length > 0) {
     const topDet = detections[0];
@@ -1269,13 +1325,49 @@ function processAIDetections(predictions) {
   }
 }
 
-// Main Render Loop (Draws Video / Canvas + Tactical HUD at 60 FPS)
+// Manual Threat Simulation Trigger
+function triggerManualThreat(level = 'High') {
+  const objects = ['Human', 'Vehicle', 'Animal'];
+  const obj = level === 'High' ? 'Human' : (level === 'Medium' ? 'Vehicle' : 'Animal');
+  const dist = level === 'High' ? (1.5 + Math.random() * 2.5).toFixed(1) : (4.5 + Math.random() * 5.0).toFixed(1);
+
+  const alert = {
+    id: Date.now(),
+    node: 'Node_Alpha',
+    object: obj,
+    threat_level: level,
+    confidence: parseFloat((0.92 + Math.random() * 0.07).toFixed(2)),
+    distance: parseFloat(dist),
+    timestamp: Math.floor(Date.now() / 1000)
+  };
+
+  appState.alerts.unshift(alert);
+  if (appState.alerts.length > 50) appState.alerts.pop();
+
+  appState.stats.total++;
+  appState.stats.by_level[level] = (appState.stats.by_level[level] || 0) + 1;
+  appState.stats.by_object[obj] = (appState.stats.by_object[obj] || 0) + 1;
+  appState.stats.timeline[11].count++;
+  appState.messageCount += 2;
+
+  fetchDashboard();
+  fetchStats();
+  fetchNodes();
+  fetchSystem();
+}
+
+// ─── MAIN RENDERING LOOP (60 FPS) ───────────────────────────
 function renderTacticalDisplay() {
+  if (!ctx || !canvas) {
+    requestAnimationFrame(renderTacticalDisplay);
+    return;
+  }
+
   const w = canvas.width;
   const h = canvas.height;
 
-  if (appState.videoMode === 'webcam' && videoEl.readyState >= 2) {
-    // Draw Webcam Video Frame
+  if (appState.videoMode === 'webcam' && videoEl && videoEl.readyState >= 2) {
+    // 1. WEBCAM FEED RENDERING
     ctx.save();
     if (appState.thermalFilter) {
       ctx.filter = 'contrast(1.6) hue-rotate(180deg) saturate(2.5)';
@@ -1288,25 +1380,15 @@ function renderTacticalDisplay() {
       const [x, y, bw, bh] = det.bbox;
       const boxColor = det.threat_level === 'High' ? '#ff5252' : (det.threat_level === 'Medium' ? '#ffc107' : '#00e5ff');
 
-      // Box outline
+      // Box Outline
       ctx.strokeStyle = boxColor;
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, bw, bh);
 
       // Corner Brackets
-      const cLen = 12;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
-      // Top Left
-      ctx.beginPath(); ctx.moveTo(x, y + cLen); ctx.lineTo(x, y); ctx.lineTo(x + cLen, y); ctx.stroke();
-      // Top Right
-      ctx.beginPath(); ctx.moveTo(x + bw - cLen, y); ctx.lineTo(x + bw, y); ctx.lineTo(x + bw, y + cLen); ctx.stroke();
-      // Bottom Left
-      ctx.beginPath(); ctx.moveTo(x, y + bh - cLen); ctx.lineTo(x, y + bh); ctx.lineTo(x + cLen, y + bh); ctx.stroke();
-      // Bottom Right
-      ctx.beginPath(); ctx.moveTo(x + bw - cLen, y + bh); ctx.lineTo(x + bw, y + bh); ctx.lineTo(x + bw, y + bh - cLen); ctx.stroke();
+      drawTacticalBrackets(ctx, x, y, bw, bh, 12, '#ffffff', 2.5);
 
-      // Badge
+      // Label Badge
       const badgeW = Math.max(120, bw);
       ctx.fillStyle = boxColor;
       ctx.fillRect(x, y - 20, badgeW, 20);
@@ -1314,31 +1396,31 @@ function renderTacticalDisplay() {
       ctx.fillStyle = '#000000';
       ctx.fillText(`${det.category.toUpperCase()} ${(det.confidence * 100).toFixed(0)}%`, x + 4, y - 6);
 
-      // Distance & Sensor Fusion Telemetry
+      // Telemetry Line
       ctx.fillStyle = 'rgba(10, 12, 16, 0.85)';
-      ctx.fillRect(x, y + bh + 4, 175, 18);
+      ctx.fillRect(x, y + bh + 4, 185, 18);
       ctx.font = '10px JetBrains Mono';
       ctx.fillStyle = boxColor;
       ctx.fillText(`RNG: ${det.distance}m // ${det.threat_level.toUpperCase()} THREAT`, x + 4, y + bh + 17);
     });
 
   } else {
-    // TACTICAL CCTV SIMULATION MODE
+    // 2. TACTICAL CCTV SIMULATION RENDERING
     ctx.fillStyle = appState.thermalFilter ? '#001a14' : '#070a0f';
     ctx.fillRect(0, 0, w, h);
 
-    // Grid lines
-    ctx.strokeStyle = appState.thermalFilter ? 'rgba(0,255,180,0.08)' : 'rgba(0, 229, 255, 0.05)';
+    // Matrix grid lines
+    ctx.strokeStyle = appState.thermalFilter ? 'rgba(0,255,180,0.12)' : 'rgba(0, 229, 255, 0.06)';
     ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 40) {
+    for (let x = 0; x < w; x += 45) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
     }
-    for (let y = 0; y < h; y += 40) {
+    for (let y = 0; y < h; y += 45) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
     }
 
-    // Road / perimeter zone
-    ctx.fillStyle = appState.thermalFilter ? 'rgba(0,255,180,0.03)' : 'rgba(26, 30, 40, 0.4)';
+    // Perimeter / Roadway Zone
+    ctx.fillStyle = appState.thermalFilter ? 'rgba(0,255,180,0.05)' : 'rgba(26, 30, 40, 0.45)';
     ctx.beginPath();
     ctx.moveTo(0, h * 0.7); ctx.lineTo(w, h * 0.6); ctx.lineTo(w, h); ctx.lineTo(0, h);
     ctx.fill();
@@ -1347,48 +1429,45 @@ function renderTacticalDisplay() {
     cctvTargets.forEach(t => {
       t.x += t.vx;
       t.y += t.vy;
-      if (t.x < 40 || t.x > w - t.w - 40) t.vx *= -1;
-      if (t.y < h * 0.35 || t.y > h * 0.8) t.vy *= -1;
 
-      // Silhouette
+      // Bounce at boundaries
+      if (t.x < 30 || t.x > w - t.w - 30) t.vx *= -1;
+      if (t.y < h * 0.3 || t.y > h * 0.8) t.vy *= -1;
+
+      // Silhouette / Thermal Heatmap
       if (appState.thermalFilter) {
         const grad = ctx.createRadialGradient(t.x + t.w/2, t.y + t.h/2, 5, t.x + t.w/2, t.y + t.h/2, t.w);
         grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.4, '#ffea00');
-        grad.addColorStop(0.8, '#ff3d00');
+        grad.addColorStop(0.3, '#ffea00');
+        grad.addColorStop(0.7, '#ff3d00');
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
         ctx.fillRect(t.x - 10, t.y - 10, t.w + 20, t.h + 20);
       } else {
-        ctx.fillStyle = t.type === 'Human' ? '#1c2833' : '#212f3d';
+        ctx.fillStyle = t.type === 'Human' ? '#1c2833' : (t.type === 'Vehicle' ? '#212f3d' : '#1a252f');
         ctx.fillRect(t.x, t.y, t.w, t.h);
       }
 
-      // Box
+      // YOLO Bounding Box
       const boxColor = t.threat === 'High' ? '#ff5252' : (t.threat === 'Medium' ? '#ffc107' : '#00e5ff');
       ctx.strokeStyle = boxColor;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(t.x, t.y, t.w, t.h);
 
-      // Corner brackets
-      const cLen = 8;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(t.x, t.y + cLen); ctx.lineTo(t.x, t.y); ctx.lineTo(t.x + cLen, t.y); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(t.x + t.w - cLen, t.y); ctx.lineTo(t.x + t.w); ctx.lineTo(t.x + t.w, t.y + cLen); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(t.x, t.y + t.h - cLen); ctx.lineTo(t.x, t.y + t.h); ctx.lineTo(t.x + cLen, t.y + t.h); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(t.x + t.w - cLen, t.y + t.h); ctx.lineTo(t.x + t.w); ctx.lineTo(t.x + t.w, t.y + t.h - cLen); ctx.stroke();
+      // Tactical Corner Brackets
+      drawTacticalBrackets(ctx, t.x, t.y, t.w, t.h, 10, '#ffffff', 2);
 
-      // Label
+      // AI Badge
       ctx.fillStyle = boxColor;
-      ctx.fillRect(t.x, t.y - 16, t.w > 80 ? t.w : 80, 16);
+      ctx.fillRect(t.x, t.y - 18, Math.max(t.w, 85), 18);
       ctx.font = 'bold 9px JetBrains Mono';
       ctx.fillStyle = '#000000';
-      ctx.fillText(`${t.type.toUpperCase()} ${(t.conf * 100).toFixed(0)}%`, t.x + 3, t.y - 4);
+      ctx.fillText(`${t.type.toUpperCase()} ${(t.conf * 100).toFixed(0)}%`, t.x + 4, t.y - 5);
 
-      ctx.font = '8px JetBrains Mono';
+      // Rangefinder Telemetry
+      ctx.font = '9px JetBrains Mono';
       ctx.fillStyle = boxColor;
-      ctx.fillText(`RNG: ${t.dist.toFixed(1)}m | ${t.threat.toUpperCase()}`, t.x, t.y + t.h + 12);
+      ctx.fillText(`RNG: ${t.dist.toFixed(1)}m | ${t.threat.toUpperCase()}`, t.x, t.y + t.h + 13);
     });
 
     const targetBadge = document.getElementById('live-target-badge');
@@ -1398,15 +1477,15 @@ function renderTacticalDisplay() {
     }
   }
 
-  // Crosshair in center
-  ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+  // Crosshair & Targeting Reticle
+  ctx.strokeStyle = appState.thermalFilter ? 'rgba(0, 255, 180, 0.35)' : 'rgba(0, 229, 255, 0.25)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(w / 2 - 20, h / 2); ctx.lineTo(w / 2 + 20, h / 2);
-  ctx.moveTo(w / 2, h / 2 - 20); ctx.lineTo(w / 2, h / 2 + 20);
+  ctx.moveTo(w / 2 - 25, h / 2); ctx.lineTo(w / 2 + 25, h / 2);
+  ctx.moveTo(w / 2, h / 2 - 25); ctx.lineTo(w / 2, h / 2 + 25);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(w / 2, h / 2, 35, 0, Math.PI * 2);
+  ctx.arc(w / 2, h / 2, 40, 0, Math.PI * 2);
   ctx.stroke();
 
   // Scanline overlay
@@ -1421,9 +1500,9 @@ function renderTacticalDisplay() {
 // ─── Initial Startup ────────────────────────────────────────
 // Seed initial alerts
 appState.alerts = [
-  { id: 1, node: 'Node_Alpha', object: 'Human', threat_level: 'High', confidence: 0.94, distance: 3.2, timestamp: Math.floor(Date.now() / 1000) - 10 },
-  { id: 2, node: 'Node_Bravo', object: 'Vehicle', threat_level: 'Medium', confidence: 0.91, distance: 7.8, timestamp: Math.floor(Date.now() / 1000) - 25 },
-  { id: 3, node: 'Node_Alpha', object: 'Animal', threat_level: 'Low', confidence: 0.88, distance: 12.4, timestamp: Math.floor(Date.now() / 1000) - 45 }
+  { id: 1, node: 'Node_Alpha', object: 'Human', threat_level: 'High', confidence: 0.96, distance: 3.4, timestamp: Math.floor(Date.now() / 1000) - 8 },
+  { id: 2, node: 'Node_Bravo', object: 'Vehicle', threat_level: 'Medium', confidence: 0.92, distance: 7.2, timestamp: Math.floor(Date.now() / 1000) - 22 },
+  { id: 3, node: 'Node_Alpha', object: 'Animal', threat_level: 'Low', confidence: 0.88, distance: 11.8, timestamp: Math.floor(Date.now() / 1000) - 40 }
 ];
 
 fetchDashboard();
@@ -1432,11 +1511,10 @@ fetchStats();
 fetchSystem();
 updateRoverUI(appState.rover);
 
-// Initialize TensorFlow.js and start video feed
+// Initialize TensorFlow.js in background
 initAIModel();
-startWebcam();
 
-// Start rendering loop
+// Start Rendering Loop immediately
 requestAnimationFrame(renderTacticalDisplay);
 
 // Update telemetry polling intervals
@@ -1444,6 +1522,15 @@ setInterval(fetchDashboard, 2000);
 setInterval(fetchNodes, 5000);
 setInterval(fetchStats, 4000);
 setInterval(fetchSystem, 6000);
+
+// Periodically simulate tactical radar / node detections in background
+setInterval(() => {
+  if (appState.videoMode === 'tactical' && Math.random() > 0.6) {
+    const levels = ['Low', 'Medium', 'High'];
+    const lvl = levels[Math.floor(Math.random() * levels.length)];
+    triggerManualThreat(lvl);
+  }
+}, 7000);
 
 </script>
 
