@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ATIG — Autonomous Tactical Intelligence Grid</title>
+<meta name="description" content="ATIG Command & Control Dashboard — Real-time AI surveillance, threat detection, and autonomous tactical response."/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "surface": "#0a0c10",
+        "surface-dim": "#080a0e",
+        "surface-container": "#12151a",
+        "surface-container-low": "#0e1116",
+        "surface-container-high": "#1a1d24",
+        "surface-container-highest": "#22252e",
+        "surface-bright": "#2a2d36",
+        "on-surface": "#e2e4ec",
+        "on-surface-variant": "#8a94a6",
+        "outline": "#5a6478",
+        "outline-variant": "#2a3040",
+        "primary": "#00e5ff",
+        "primary-dim": "#00b8d4",
+        "primary-muted": "#004d5a",
+        "on-primary": "#001a1f",
+        "secondary": "#ffc107",
+        "secondary-dim": "#ffab00",
+        "on-secondary": "#1a1400",
+        "error": "#ff5252",
+        "error-dim": "#d32f2f",
+        "error-container": "#3d0000",
+        "on-error": "#1a0000",
+        "success": "#00e676",
+        "success-dim": "#00c853",
+      },
+      fontFamily: {
+        "sans": ["Inter", "system-ui", "sans-serif"],
+        "mono": ["JetBrains Mono", "monospace"],
+        "display": ["Geist", "Inter", "sans-serif"],
+      },
+      fontSize: {
+        "2xs": ["10px", "14px"],
+      }
+    }
+  }
+}
+</script>
+<style>
+  body {
+    background-color: #0a0c10;
+    color: #e2e4ec;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,229,255,0.03) 1px, transparent 0);
+    background-size: 32px 32px;
+  }
+
+  /* Glassmorphism panels */
+  .glass {
+    background: rgba(12, 15, 20, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(42, 48, 64, 0.6);
+  }
+  .glass-active {
+    border-color: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.05), inset 0 1px 0 rgba(0, 229, 255, 0.1);
+  }
+  .glass:hover {
+    border-color: rgba(42, 48, 64, 0.9);
+  }
+
+  /* Corner accents */
+  .corner-marks {
+    position: relative;
+  }
+  .corner-marks::before, .corner-marks::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: #00e5ff;
+    border-style: solid;
+    opacity: 0.5;
+  }
+  .corner-marks::before {
+    top: -1px; left: -1px;
+    border-width: 1px 0 0 1px;
+  }
+  .corner-marks::after {
+    bottom: -1px; right: -1px;
+    border-width: 0 1px 1px 0;
+  }
+
+  /* Status indicator */
+  .status-pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+  }
+  .status-pulse.online {
+    background: #00e676;
+    box-shadow: 0 0 8px #00e676;
+  }
+  .status-pulse.online::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid #00e676;
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  .status-pulse.danger {
+    background: #ff5252;
+    box-shadow: 0 0 8px #ff5252;
+  }
+  .status-pulse.danger::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid #ff5252;
+    animation: pulse-ring 1s ease-out infinite;
+  }
+  .status-pulse.offline {
+    background: #5a6478;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+  @keyframes pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(0,229,255,0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0,229,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+  }
+
+  /* Tab system */
+  .tab-btn {
+    transition: all 0.2s ease;
+  }
+  .tab-btn.active {
+    color: #00e5ff;
+    border-bottom: 2px solid #00e5ff;
+    background: rgba(0,229,255,0.05);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #5a6478; }
+
+  /* Rover control pad */
+  .rover-btn {
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .rover-btn:hover { background: rgba(0,229,255,0.15); border-color: rgba(0,229,255,0.4); }
+  .rover-btn:active { transform: scale(0.95); background: rgba(0,229,255,0.25); }
+
+  /* Chart bars animation */
+  .chart-bar {
+    transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Video feed container */
+  .feed-container {
+    position: relative;
+    overflow: hidden;
+    background: #080a0e;
+  }
+  .feed-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .feed-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .feed-overlay-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Metric card */
+  .metric-card {
+    transition: all 0.2s ease;
+  }
+  .metric-card:hover {
+    border-color: rgba(0,229,255,0.3);
+    transform: translateY(-1px);
+  }
+</style>
+</head>
+
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+<!-- ═══════════════════ TOP NAV BAR ═══════════════════ -->
+<header class="fixed top-0 left-0 w-full z-50 h-14 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 flex items-center justify-between px-4 md:px-8">
+  <div class="flex items-center gap-6">
+    <!-- Logo -->
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary text-xl">shield</span>
+      <span class="font-display font-bold text-primary tracking-tight text-lg">ATIG</span>
+      <span class="font-mono text-2xs text-outline hidden sm:inline">// C2_DASHBOARD</span>
+    </div>
+    <!-- Tab Navigation -->
+    <nav class="flex gap-1 ml-4" id="nav-tabs">
+      <button class="tab-btn active font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="analysis">Analysis</button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="rover">Rover</button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase" data-tab="technical">Technical</button>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 px-3 py-1 rounded glass text-xs font-mono" id="mqtt-status-badge">
+      <span class="status-pulse offline" id="mqtt-dot"></span>
+      <span class="text-outline" id="mqtt-label">LINK: Connecting</span>
+    </div>
+    <div class="font-mono text-2xs text-outline" id="clock"></div>
+  </div>
+</header>
+
+<!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+<main class="flex-1 mt-14 px-4 md:px-8 max-w-[1600px] mx-auto w-full py-6">
+
+<!-- ─────────────── TAB: DASHBOARD ─────────────── -->
+<div class="tab-content active" id="tab-dashboard">
+
+  <!-- Status Banner -->
+  <div class="glass glass-active corner-marks p-5 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <span class="status-pulse online" id="system-dot"></span>
+      <div>
+        <h1 class="font-display font-bold text-xl text-primary tracking-tight uppercase">Autonomous Tactical Intelligence Grid</h1>
+        <p class="font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5" id="system-status-text">SYSTEM ONLINE // ALL SECTORS NOMINAL</p>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button class="bg-primary/10 border border-primary/30 text-primary px-4 py-2 font-mono text-xs uppercase tracking-wider hover:bg-primary/20 transition-colors" id="threat-count-btn">
+        Active Threats: <span id="active-threat-count">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Active Nodes</div>
+      <div class="font-display text-3xl font-bold text-primary" id="metric-nodes">0</div>
+      <div class="font-mono text-2xs text-success mt-1" id="metric-nodes-status">Scanning...</div>
+    </div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Active Threats</div>
+      <div class="font-display text-3xl font-bold text-error" id="metric-threats">0</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-threats-label">Last 30 seconds</div>
+    </div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Rover Status</div>
+      <div class="font-display text-xl font-bold text-success" id="metric-rover">Standby</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1">Ready to deploy</div>
+    </div>
+    <div class="metric-card glass corner-marks p-4 text-center">
+      <div class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider mb-2">Network</div>
+      <div class="font-display text-xl font-bold" id="metric-network">—</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-uptime">Uptime: —</div>
+    </div>
+  </div>
+
+  <!-- Video Feed + Tactical Logs -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <!-- Video Feed -->
+    <div class="lg:col-span-8 glass corner-marks overflow-hidden">
+      <div class="p-3 border-b border-outline-variant/20 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-sm">videocam</span>
+          <span class="font-mono text-xs text-primary uppercase tracking-wider">Live Surveillance Feed</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="status-pulse online" id="feed-status-dot" style="width:6px;height:6px;"></span>
+          <span class="font-mono text-2xs text-on-surface-variant" id="feed-status-text">LIVE</span>
+        </div>
+      </div>
+      <div class="feed-container" style="aspect-ratio: 16/9;">
+        <img id="video-feed" src="http://localhost:5000/video_feed"
+             onerror="this.style.display='none'; document.getElementById('feed-offline').style.display='flex';"
+             onload="this.style.display='block'; document.getElementById('feed-offline').style.display='none';">
+        <div id="feed-offline" class="absolute inset-0 flex flex-col items-center justify-center gap-3" style="display:none;">
+          <span class="material-symbols-outlined text-outline text-4xl">videocam_off</span>
+          <span class="font-mono text-xs text-outline">NODE FEED OFFLINE</span>
+          <span class="font-mono text-2xs text-on-surface-variant">Waiting for surveillance node stream...</span>
+        </div>
+        <div class="feed-overlay">
+          <span class="font-mono text-2xs text-primary/80">NODE_ALPHA // CAM_01</span>
+          <span class="font-mono text-2xs text-on-surface-variant" id="feed-timestamp"></span>
+        </div>
+        <div class="feed-overlay-bottom">
+          <span class="font-mono text-2xs text-on-surface-variant">YOLOv12 AI ACTIVE</span>
+          <span class="font-mono text-2xs text-primary/60">ATIG ENCRYPTED LINK</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tactical Logs -->
+    <div class="lg:col-span-4 glass corner-marks flex flex-col" style="max-height: calc(9/16 * 66vw); min-height: 400px;">
+      <div class="p-3 border-b border-outline-variant/20 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-sm">terminal</span>
+          <span class="font-mono text-xs text-primary uppercase tracking-wider">Tactical Logs</span>
+        </div>
+        <span class="font-mono text-2xs text-on-surface-variant" id="log-count">0 entries</span>
+      </div>
+      <div id="tactical-logs" class="flex-1 flex flex-col gap-1.5 p-3 overflow-y-auto">
+        <div class="text-center py-8">
+          <span class="material-symbols-outlined text-outline/30 text-3xl mb-2 block">radio_button_unchecked</span>
+          <span class="font-mono text-xs text-outline">Awaiting threat data...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── TAB: ANALYSIS ─────────────── -->
+<div class="tab-content" id="tab-analysis">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+
+    <!-- Threat Level Distribution -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">pie_chart</span>
+        Threat Level Distribution
+      </h3>
+      <div class="flex justify-center">
+        <canvas id="chart-threat-levels" width="200" height="200"></canvas>
+      </div>
+      <div class="flex justify-center gap-4 mt-4">
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-error inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">High</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-secondary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Medium</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Low</span></div>
+      </div>
+    </div>
+
+    <!-- Detection by Object Type -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">category</span>
+        Detection by Object
+      </h3>
+      <div id="chart-objects" class="space-y-3 mt-2"></div>
+    </div>
+
+    <!-- Key Stats -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">analytics</span>
+        Key Metrics
+      </h3>
+      <div class="space-y-4 mt-2">
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Total Detections</span>
+          <span class="font-display text-lg font-bold text-primary" id="stat-total">0</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Avg Confidence</span>
+          <span class="font-display text-lg font-bold text-secondary" id="stat-confidence">0%</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">High Threats</span>
+          <span class="font-display text-lg font-bold text-error" id="stat-high">0</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Medium Threats</span>
+          <span class="font-display text-lg font-bold text-secondary" id="stat-medium">0</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Low Threats</span>
+          <span class="font-display text-lg font-bold text-primary" id="stat-low">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection Timeline -->
+    <div class="glass corner-marks p-5 md:col-span-2 lg:col-span-3">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">timeline</span>
+        Detection Timeline (Last Hour — 5 min buckets)
+      </h3>
+      <div id="chart-timeline" class="flex items-end gap-1 h-32 mt-2"></div>
+      <div class="flex justify-between mt-2">
+        <span class="font-mono text-2xs text-outline">-60 min</span>
+        <span class="font-mono text-2xs text-outline">Now</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── TAB: ROVER ─────────────── -->
+<div class="tab-content" id="tab-rover">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+    <!-- Rover Status -->
+    <div class="lg:col-span-4 glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">smart_toy</span>
+        Rover Unit Status
+      </h3>
+      <div class="text-center py-6">
+        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-2 border-outline-variant/30 mb-4 relative">
+          <span class="material-symbols-outlined text-primary text-4xl">precision_manufacturing</span>
+          <span class="absolute -bottom-1 -right-1 status-pulse online" id="rover-status-dot" style="width:12px;height:12px;"></span>
+        </div>
+        <div class="font-display text-2xl font-bold text-primary mb-1" id="rover-status-display">Standby</div>
+        <div class="font-mono text-2xs text-on-surface-variant" id="rover-last-cmd">No commands sent</div>
+      </div>
+      <div class="space-y-2 mt-4">
+        <div class="flex justify-between items-center p-2 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Battery</span>
+          <div class="flex items-center gap-2">
+            <div class="w-16 h-1.5 bg-outline-variant/30 rounded-full overflow-hidden">
+              <div class="h-full bg-success rounded-full" id="rover-battery-bar" style="width:100%"></div>
+            </div>
+            <span class="font-mono text-xs text-success" id="rover-battery-text">100%</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-2 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Position</span>
+          <span class="font-mono text-xs text-primary" id="rover-position">X:0 Y:0</span>
+        </div>
+        <div class="flex justify-between items-center p-2 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Last Update</span>
+          <span class="font-mono text-xs text-on-surface-variant" id="rover-last-update">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rover Controls -->
+    <div class="lg:col-span-4 glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">gamepad</span>
+        Directional Control
+      </h3>
+      <div class="flex flex-col items-center gap-2 py-4">
+        <!-- D-pad -->
+        <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('forward')">
+          <span class="material-symbols-outlined text-primary">arrow_upward</span>
+        </button>
+        <div class="flex gap-2">
+          <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('left')">
+            <span class="material-symbols-outlined text-primary">arrow_back</span>
+          </button>
+          <button class="rover-btn w-16 h-12 glass border border-error/40 rounded flex items-center justify-center" onclick="sendRoverCmd('stop')">
+            <span class="material-symbols-outlined text-error">stop_circle</span>
+          </button>
+          <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('right')">
+            <span class="material-symbols-outlined text-primary">arrow_forward</span>
+          </button>
+        </div>
+        <button class="rover-btn w-16 h-12 glass border border-outline-variant/40 rounded flex items-center justify-center" onclick="sendRoverCmd('back')">
+          <span class="material-symbols-outlined text-primary">arrow_downward</span>
+        </button>
+      </div>
+      <!-- Action buttons -->
+      <div class="grid grid-cols-2 gap-2 mt-6">
+        <button class="rover-btn py-3 glass border border-success/30 rounded text-success font-mono text-xs uppercase tracking-wider" onclick="sendRoverCmd('deploy')">
+          <span class="material-symbols-outlined text-sm align-middle mr-1">rocket_launch</span>Deploy
+        </button>
+        <button class="rover-btn py-3 glass border border-secondary/30 rounded text-secondary font-mono text-xs uppercase tracking-wider" onclick="sendRoverCmd('patrol')">
+          <span class="material-symbols-outlined text-sm align-middle mr-1">explore</span>Patrol
+        </button>
+        <button class="rover-btn py-3 glass border border-primary/30 rounded text-primary font-mono text-xs uppercase tracking-wider col-span-2" onclick="sendRoverCmd('return')">
+          <span class="material-symbols-outlined text-sm align-middle mr-1">home</span>Return to Base
+        </button>
+      </div>
+    </div>
+
+    <!-- Rover Activity Log -->
+    <div class="lg:col-span-4 glass corner-marks p-5 flex flex-col" style="max-height:500px;">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">history</span>
+        Rover Activity Log
+      </h3>
+      <div id="rover-log" class="flex-1 overflow-y-auto space-y-1.5">
+        <div class="text-center py-6">
+          <span class="font-mono text-xs text-outline">No rover activity yet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── TAB: TECHNICAL ─────────────── -->
+<div class="tab-content" id="tab-technical">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+
+    <!-- System Performance -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">speed</span>
+        System Performance
+      </h3>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Server Uptime</span>
+          <span class="font-mono text-xs text-primary" id="sys-uptime">—</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">MQTT Messages</span>
+          <span class="font-mono text-xs text-primary" id="sys-messages">0</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Total Alerts</span>
+          <span class="font-mono text-xs text-primary" id="sys-total-alerts">0</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Database Size</span>
+          <span class="font-mono text-xs text-primary" id="sys-db-size">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MQTT Connection -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">cell_tower</span>
+        MQTT Connection
+      </h3>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Broker</span>
+          <span class="font-mono text-xs text-on-surface-variant" id="sys-broker">—</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Status</span>
+          <span class="font-mono text-xs" id="sys-mqtt-status">—</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Topics</span>
+          <span class="font-mono text-2xs text-on-surface-variant">atig/alerts, atig/heartbeat</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Node Hardware -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">developer_board</span>
+        Node Hardware
+      </h3>
+      <div id="node-hardware-list" class="space-y-3">
+        <div class="text-center py-4">
+          <span class="font-mono text-xs text-outline">Scanning for nodes...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sensor Fusion Info -->
+    <div class="glass corner-marks p-5 md:col-span-2 lg:col-span-3">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">schema</span>
+        Sensor Fusion Pipeline
+      </h3>
+      <div class="flex flex-col md:flex-row items-center justify-center gap-3 py-4">
+        <div class="glass border border-primary/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-primary text-2xl block mb-1">videocam</span>
+          <div class="font-mono text-xs text-primary">Camera</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">YOLOv8 Detection</div>
+        </div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-secondary/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-secondary text-2xl block mb-1">sensors</span>
+          <div class="font-mono text-xs text-secondary">PIR Sensor</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Motion Verify</div>
+        </div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-secondary/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-secondary text-2xl block mb-1">straighten</span>
+          <div class="font-mono text-xs text-secondary">Ultrasonic</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Distance Check</div>
+        </div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-error/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-error text-2xl block mb-1">gpp_maybe</span>
+          <div class="font-mono text-xs text-error">Threat Level</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">High / Med / Low</div>
+        </div>
+        <span class="material-symbols-outlined text-outline rotate-90 md:rotate-0">arrow_forward</span>
+        <div class="glass border border-success/20 p-4 rounded text-center min-w-[140px]">
+          <span class="material-symbols-outlined text-success text-2xl block mb-1">cell_tower</span>
+          <div class="font-mono text-xs text-success">MQTT Alert</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Broadcast</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="w-full py-3 px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center bg-surface-dim border-t border-outline-variant/10 mt-auto gap-2">
+  <div class="font-mono text-2xs text-outline">© 2024 ATIG SYSTEMS — ENCRYPTED LINK ESTABLISHED</div>
+  <div class="flex gap-4">
+    <span class="font-mono text-2xs text-outline">FIRMWARE: v2.1.0</span>
+    <span class="font-mono text-2xs text-outline">PROTOCOL: HTTP/SOCKET.IO</span>
+  </div>
+</footer>
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+// ─── Tab Navigation ─────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── Clock ──────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US', { hour12: false }) + ' IST';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── Feed timestamp ─────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('feed-timestamp').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: false });
+}, 1000);
+
+// ─── SocketIO ───────────────────────────────────────────────
+const socket = io();
+
+socket.on('connect', () => {
+  document.getElementById('mqtt-dot').className = 'status-pulse online';
+  document.getElementById('mqtt-label').textContent = 'LINK: Active';
+  document.getElementById('mqtt-label').className = 'text-success';
+});
+
+socket.on('disconnect', () => {
+  document.getElementById('mqtt-dot').className = 'status-pulse offline';
+  document.getElementById('mqtt-label').textContent = 'LINK: Offline';
+  document.getElementById('mqtt-label').className = 'text-outline';
+});
+
+socket.on('new_alert', (alert) => {
+  appendTacticalAlert(alert);
+});
+
+function appendTacticalAlert(alert) {
+  const logsContainer = document.getElementById('tactical-logs');
+  if (!logsContainer) return;
+
+  // Clear empty state placeholder if present
+  if (logsContainer.querySelector('.text-center')) {
+    logsContainer.innerHTML = '';
+  }
+
+  const d = new Date(alert.timestamp * 1000);
+  const t = d.toLocaleTimeString('en-US', { hour12: false });
+  let borderColor, textColor, icon;
+  if (alert.threat_level === 'High') {
+    borderColor = 'border-error/40'; textColor = 'text-error'; icon = 'error';
+  } else if (alert.threat_level === 'Medium') {
+    borderColor = 'border-secondary/40'; textColor = 'text-secondary'; icon = 'warning';
+  } else {
+    borderColor = 'border-primary/30'; textColor = 'text-primary'; icon = 'info';
+  }
+
+  const card = document.createElement('div');
+  card.className = `p-2.5 bg-surface-container border ${borderColor} rounded`;
+  card.innerHTML = `
+    <div class="flex justify-between items-center mb-1">
+      <div class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined ${textColor} text-sm">${icon}</span>
+        <span class="font-mono text-2xs text-outline">[${t}] ${alert.node || 'Node_Alpha'}</span>
+      </div>
+      <span class="font-mono text-2xs font-bold ${textColor}">${(alert.threat_level || 'LOW').toUpperCase()}</span>
+    </div>
+    <div class="font-mono text-xs ${textColor}">
+      ${alert.object} — Conf: ${(alert.confidence * 100).toFixed(0)}% — ${alert.distance}m
+    </div>
+  `;
+
+  logsContainer.prepend(card);
+
+  // Keep max 15 entries in DOM to prevent memory leak / slow scroll
+  while (logsContainer.children.length > 15) {
+    logsContainer.removeChild(logsContainer.lastChild);
+  }
+
+  document.getElementById('log-count').textContent = logsContainer.children.length + ' entries';
+
+  // Update threat indicator badge
+  const sysDot = document.getElementById('system-dot');
+  const sysText = document.getElementById('system-status-text');
+  sysDot.className = 'status-pulse danger';
+  sysText.textContent = 'ALERT // THREAT DETECTED';
+  sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5';
+}
+
+socket.on('node_heartbeat', (data) => {
+  fetchNodes();
+});
+
+socket.on('rover_update', (data) => {
+  updateRoverUI(data);
+});
+
+// ─── Rover Commands ─────────────────────────────────────────
+const roverLog = [];
+
+function sendRoverCmd(command) {
+  fetch('/api/rover/command', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command: command })
+  })
+  .then(r => r.json())
+  .then(data => {
+    updateRoverUI(data);
+    // Add to log
+    roverLog.unshift({
+      command: command,
+      time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      status: data.status
+    });
+    renderRoverLog();
+  })
+  .catch(e => console.error('Rover command error:', e));
+}
+
+function updateRoverUI(data) {
+  const statusEl = document.getElementById('rover-status-display');
+  const dotEl = document.getElementById('rover-status-dot');
+  const metricRover = document.getElementById('metric-rover');
+  statusEl.textContent = data.status || 'Unknown';
+  metricRover.textContent = data.status || 'Unknown';
+
+  if (data.status === 'Standby') {
+    statusEl.className = 'font-display text-2xl font-bold text-success mb-1';
+    metricRover.className = 'font-display text-xl font-bold text-success';
+    dotEl.className = 'absolute -bottom-1 -right-1 status-pulse online';
+  } else if (data.status === 'Deployed' || data.status === 'Patrolling') {
+    statusEl.className = 'font-display text-2xl font-bold text-secondary mb-1';
+    metricRover.className = 'font-display text-xl font-bold text-secondary';
+    dotEl.className = 'absolute -bottom-1 -right-1 status-pulse online';
+  } else {
+    statusEl.className = 'font-display text-2xl font-bold text-primary mb-1';
+    metricRover.className = 'font-display text-xl font-bold text-primary';
+    dotEl.className = 'absolute -bottom-1 -right-1 status-pulse online';
+  }
+
+  if (data.last_command) {
+    document.getElementById('rover-last-cmd').textContent = 'Last: ' + data.last_command.toUpperCase();
+  }
+  if (data.position) {
+    document.getElementById('rover-position').textContent =
+      'X:' + data.position.x + ' Y:' + data.position.y;
+  }
+  if (data.battery !== undefined) {
+    document.getElementById('rover-battery-text').textContent = data.battery + '%';
+    document.getElementById('rover-battery-bar').style.width = data.battery + '%';
+  }
+  document.getElementById('rover-last-update').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: false });
+}
+
+function renderRoverLog() {
+  const container = document.getElementById('rover-log');
+  if (roverLog.length === 0) {
+    container.innerHTML = '<div class="text-center py-6"><span class="font-mono text-xs text-outline">No rover activity yet</span></div>';
+    return;
+  }
+  container.innerHTML = roverLog.slice(0, 20).map(entry => `
+    <div class="p-2 bg-surface-container rounded flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-sm">chevron_right</span>
+        <span class="font-mono text-xs text-on-surface">${entry.command.toUpperCase()}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-2xs text-on-surface-variant">${entry.status}</span>
+        <span class="font-mono text-2xs text-outline">${entry.time}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── Dashboard Data Fetching ────────────────────────────────
+function fetchDashboard() {
+  fetch('/api/alerts')
+    .then(r => r.json())
+    .then(data => {
+      const count = data.active_threats;
+      const alerts = data.alerts;
+
+      // Update threat count
+      document.getElementById('active-threat-count').textContent = count;
+      document.getElementById('metric-threats').textContent = count;
+
+      // Update system status
+      const sysDot = document.getElementById('system-dot');
+      const sysText = document.getElementById('system-status-text');
+      if (count > 0) {
+        sysDot.className = 'status-pulse danger';
+        sysText.textContent = 'ALERT // ' + count + ' ACTIVE THREAT' + (count > 1 ? 'S' : '') + ' DETECTED';
+        sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5';
+      } else {
+        sysDot.className = 'status-pulse online';
+        sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL';
+        sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
+      }
+
+      // Render tactical logs
+      const logsContainer = document.getElementById('tactical-logs');
+      if (alerts.length > 0) {
+        document.getElementById('log-count').textContent = alerts.length + ' entries';
+        logsContainer.innerHTML = alerts.map(alert => {
+          const d = new Date(alert.timestamp * 1000);
+          const t = d.toLocaleTimeString('en-US', { hour12: false });
+          let borderColor, textColor, icon;
+          if (alert.threat_level === 'High') {
+            borderColor = 'border-error/40'; textColor = 'text-error'; icon = 'error';
+          } else if (alert.threat_level === 'Medium') {
+            borderColor = 'border-secondary/40'; textColor = 'text-secondary'; icon = 'warning';
+          } else {
+            borderColor = 'border-primary/30'; textColor = 'text-primary'; icon = 'info';
+          }
+          return `
+            <div class="p-2.5 bg-surface-container border ${borderColor} rounded">
+              <div class="flex justify-between items-center mb-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="material-symbols-outlined ${textColor} text-sm">${icon}</span>
+                  <span class="font-mono text-2xs text-outline">[${t}] ${alert.node}</span>
+                </div>
+                <span class="font-mono text-2xs font-bold ${textColor}">${alert.threat_level.toUpperCase()}</span>
+              </div>
+              <div class="font-mono text-xs ${textColor}">
+                ${alert.object} — Conf: ${(alert.confidence * 100).toFixed(0)}% — ${alert.distance}m
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    })
+    .catch(e => console.error('Dashboard fetch error:', e));
+}
+
+function fetchNodes() {
+  fetch('/api/nodes')
+    .then(r => r.json())
+    .then(data => {
+      const nodes = data.nodes;
+      const onlineCount = nodes.filter(n => n.online).length;
+      document.getElementById('metric-nodes').textContent = onlineCount;
+      document.getElementById('metric-nodes-status').textContent =
+        onlineCount > 0 ? onlineCount + ' node' + (onlineCount > 1 ? 's' : '') + ' online' : 'No nodes detected';
+
+      // Technical tab — node hardware
+      const hwList = document.getElementById('node-hardware-list');
+      if (nodes.length > 0) {
+        hwList.innerHTML = nodes.map(n => `
+          <div class="p-3 bg-surface-container rounded border ${n.online ? 'border-primary/20' : 'border-outline-variant/20'}">
+            <div class="flex justify-between items-center mb-2">
+              <span class="font-mono text-xs ${n.online ? 'text-primary' : 'text-outline'}">${n.node_id}</span>
+              <span class="status-pulse ${n.online ? 'online' : 'offline'}" style="width:6px;height:6px;"></span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 text-2xs font-mono">
+              <span class="text-on-surface-variant">FPS: <span class="text-primary">${n.fps?.toFixed(1) || '—'}</span></span>
+              <span class="text-on-surface-variant">Dets: <span class="text-primary">${n.detections || 0}</span></span>
+              <span class="text-on-surface-variant">Up: <span class="text-primary">${formatUptime(n.uptime)}</span></span>
+              <span class="text-on-surface-variant">Status: <span class="${n.online ? 'text-success' : 'text-error'}">${n.online ? 'Online' : 'Offline'}</span></span>
+            </div>
+          </div>
+        `).join('');
+      }
+    })
+    .catch(e => console.error('Nodes fetch error:', e));
+}
+
+function fetchStats() {
+  fetch('/api/stats')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('stat-total').textContent = data.total;
+      document.getElementById('stat-confidence').textContent =
+        (data.avg_confidence * 100).toFixed(1) + '%';
+      document.getElementById('stat-high').textContent = data.by_level['High'] || 0;
+      document.getElementById('stat-medium').textContent = data.by_level['Medium'] || 0;
+      document.getElementById('stat-low').textContent = data.by_level['Low'] || 0;
+
+      // Donut chart
+      drawDonut(data.by_level);
+
+      // Object bars
+      drawObjectBars(data.by_object, data.total);
+
+      // Timeline
+      drawTimeline(data.timeline);
+    })
+    .catch(e => console.error('Stats fetch error:', e));
+}
+
+function fetchSystem() {
+  fetch('/api/system')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('sys-uptime').textContent = formatUptime(data.uptime);
+      document.getElementById('sys-messages').textContent = data.message_count;
+      document.getElementById('sys-total-alerts').textContent = data.total_alerts;
+      document.getElementById('sys-db-size').textContent = data.db_size_kb + ' KB';
+      document.getElementById('sys-broker').textContent = data.mqtt_broker;
+
+      const mqttStatusEl = document.getElementById('sys-mqtt-status');
+      if (data.mqtt_connected) {
+        mqttStatusEl.textContent = 'Connected';
+        mqttStatusEl.className = 'font-mono text-xs text-success';
+      } else {
+        mqttStatusEl.textContent = 'Disconnected';
+        mqttStatusEl.className = 'font-mono text-xs text-error';
+      }
+
+      // Network metric
+      const netEl = document.getElementById('metric-network');
+      if (data.mqtt_connected) {
+        netEl.textContent = 'Online';
+        netEl.className = 'font-display text-xl font-bold text-success';
+      } else {
+        netEl.textContent = 'Offline';
+        netEl.className = 'font-display text-xl font-bold text-error';
+      }
+      document.getElementById('metric-uptime').textContent = 'Uptime: ' + formatUptime(data.uptime);
+    })
+    .catch(e => console.error('System fetch error:', e));
+}
+
+// ─── Chart Rendering ────────────────────────────────────────
+
+function drawDonut(byLevel) {
+  const canvas = document.getElementById('chart-threat-levels');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = 75, inner = 45;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const vals = [
+    { val: byLevel['High'] || 0, color: '#ff5252' },
+    { val: byLevel['Medium'] || 0, color: '#ffc107' },
+    { val: byLevel['Low'] || 0, color: '#00e5ff' },
+  ];
+  const total = vals.reduce((s, v) => s + v.val, 0);
+  if (total === 0) {
+    // Empty state
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.arc(cx, cy, inner, 0, Math.PI * 2, true);
+    ctx.fillStyle = '#1a1d24';
+    ctx.fill();
+    ctx.font = '12px JetBrains Mono';
+    ctx.fillStyle = '#5a6478';
+    ctx.textAlign = 'center';
+    ctx.fillText('No Data', cx, cy + 4);
+    return;
+  }
+
+  let angle = -Math.PI / 2;
+  vals.forEach(v => {
+    const slice = (v.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, angle, angle + slice);
+    ctx.arc(cx, cy, inner, angle + slice, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = v.color;
+    ctx.fill();
+    angle += slice;
+  });
+
+  // Center text
+  ctx.font = 'bold 20px Geist';
+  ctx.fillStyle = '#e2e4ec';
+  ctx.textAlign = 'center';
+  ctx.fillText(total, cx, cy + 2);
+  ctx.font = '10px JetBrains Mono';
+  ctx.fillStyle = '#5a6478';
+  ctx.fillText('TOTAL', cx, cy + 16);
+}
+
+function drawObjectBars(byObject, total) {
+  const container = document.getElementById('chart-objects');
+  if (Object.keys(byObject).length === 0) {
+    container.innerHTML = '<div class="text-center py-4"><span class="font-mono text-xs text-outline">No detection data</span></div>';
+    return;
+  }
+  const colors = { 'Human': '#ffc107', 'Vehicle': '#ff5252', 'Animal': '#00e5ff' };
+  container.innerHTML = Object.entries(byObject).map(([obj, count]) => {
+    const pct = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+    const color = colors[obj] || '#00e5ff';
+    return `
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="font-mono text-xs text-on-surface-variant">${obj}</span>
+          <span class="font-mono text-xs" style="color:${color}">${count} (${pct}%)</span>
+        </div>
+        <div class="w-full h-2 bg-surface-container-low rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function drawTimeline(timeline) {
+  const container = document.getElementById('chart-timeline');
+  // 12 buckets for 1 hour (5 min each)
+  const buckets = new Array(12).fill(0);
+  timeline.forEach(t => {
+    if (t.bucket >= 0 && t.bucket < 12) buckets[t.bucket] = t.count;
+  });
+  const max = Math.max(...buckets, 1);
+
+  container.innerHTML = buckets.map((count, i) => {
+    const heightPct = (count / max) * 100;
+    const color = count > 0 ? (count > 3 ? '#ff5252' : '#00e5ff') : '#1a1d24';
+    return `
+      <div class="flex-1 flex flex-col items-center justify-end h-full">
+        <span class="font-mono text-2xs text-on-surface-variant mb-1 ${count === 0 ? 'invisible' : ''}">${count}</span>
+        <div class="chart-bar w-full rounded-t" style="height:${Math.max(heightPct, 2)}%;background:${color};min-height:2px;"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Utilities ──────────────────────────────────────────────
+function formatUptime(seconds) {
+  if (!seconds || seconds < 0) return '—';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + s + 's';
+  return s + 's';
+}
+
+// ─── Initial Load + Polling ─────────────────────────────────
+
+fetchDashboard();
+fetchNodes();
+fetchStats();
+fetchSystem();
+
+// Poll every 3 seconds for live data
+setInterval(fetchDashboard, 3000);
+setInterval(fetchNodes, 10000);
+setInterval(fetchStats, 5000);
+setInterval(fetchSystem, 10000);
+</script>
+
+</body>
+</html>
