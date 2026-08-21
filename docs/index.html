@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ATIG — Autonomous Tactical Intelligence Grid | Live Command & Control</title>
+<meta name="description" content="ATIG Live Command & Control Dashboard — Real-time AI surveillance, sensor fusion, threat classification, and autonomous tactical response."/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "surface": "#0a0c10",
+        "surface-dim": "#080a0e",
+        "surface-container": "#12151a",
+        "surface-container-low": "#0e1116",
+        "surface-container-high": "#1a1d24",
+        "surface-container-highest": "#22252e",
+        "surface-bright": "#2a2d36",
+        "on-surface": "#e2e4ec",
+        "on-surface-variant": "#8a94a6",
+        "outline": "#5a6478",
+        "outline-variant": "#2a3040",
+        "primary": "#00e5ff",
+        "primary-dim": "#00b8d4",
+        "primary-muted": "#004d5a",
+        "on-primary": "#001a1f",
+        "secondary": "#ffc107",
+        "secondary-dim": "#ffab00",
+        "on-secondary": "#1a1400",
+        "error": "#ff5252",
+        "error-dim": "#d32f2f",
+        "error-container": "#3d0000",
+        "on-error": "#1a0000",
+        "success": "#00e676",
+        "success-dim": "#00c853",
+      },
+      fontFamily: {
+        "sans": ["Inter", "system-ui", "sans-serif"],
+        "mono": ["JetBrains Mono", "monospace"],
+        "display": ["Geist", "Inter", "sans-serif"],
+      },
+      fontSize: {
+        "2xs": ["10px", "14px"],
+      }
+    }
+  }
+}
+</script>
+<style>
+  body {
+    background-color: #0a0c10;
+    color: #e2e4ec;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,229,255,0.035) 1px, transparent 0);
+    background-size: 32px 32px;
+  }
+
+  /* Glassmorphism panels */
+  .glass {
+    background: rgba(12, 15, 20, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(42, 48, 64, 0.6);
+  }
+  .glass-active {
+    border-color: rgba(0, 229, 255, 0.25);
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.06), inset 0 1px 0 rgba(0, 229, 255, 0.12);
+  }
+  .glass:hover {
+    border-color: rgba(42, 48, 64, 0.9);
+  }
+
+  /* Corner accents */
+  .corner-marks {
+    position: relative;
+  }
+  .corner-marks::before, .corner-marks::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: #00e5ff;
+    border-style: solid;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .corner-marks::before {
+    top: -1px; left: -1px;
+    border-width: 1px 0 0 1px;
+  }
+  .corner-marks::after {
+    bottom: -1px; right: -1px;
+    border-width: 0 1px 1px 0;
+  }
+
+  /* Status indicator */
+  .status-pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+  }
+  .status-pulse.online {
+    background: #00e676;
+    box-shadow: 0 0 8px #00e676;
+  }
+  .status-pulse.online::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid #00e676;
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  .status-pulse.danger {
+    background: #ff5252;
+    box-shadow: 0 0 10px #ff5252;
+  }
+  .status-pulse.danger::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid #ff5252;
+    animation: pulse-ring 1s ease-out infinite;
+  }
+  .status-pulse.offline {
+    background: #5a6478;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  /* Tab system */
+  .tab-btn {
+    transition: all 0.2s ease;
+  }
+  .tab-btn.active {
+    color: #00e5ff;
+    border-bottom: 2px solid #00e5ff;
+    background: rgba(0,229,255,0.08);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #5a6478; }
+
+  /* Rover control pad */
+  .rover-btn {
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .rover-btn:hover { background: rgba(0,229,255,0.15); border-color: rgba(0,229,255,0.4); }
+  .rover-btn:active { transform: scale(0.95); background: rgba(0,229,255,0.25); }
+
+  /* Chart bars animation */
+  .chart-bar {
+    transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Video feed container */
+  .feed-container {
+    position: relative;
+    overflow: hidden;
+    background: #080a0e;
+  }
+  .feed-container video, .feed-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .feed-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(8,10,14,0.85), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+  }
+  .feed-overlay-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 10px 14px;
+    background: linear-gradient(to top, rgba(8,10,14,0.85), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  /* Scanlines filter */
+  .scanline-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 3px, 6px 100%;
+    opacity: 0.6;
+  }
+
+  /* Bounding box simulation */
+  .target-box {
+    position: absolute;
+    border: 2px solid #ff5252;
+    background: rgba(255, 82, 82, 0.15);
+    box-shadow: 0 0 10px rgba(255, 82, 82, 0.4);
+    animation: box-flicker 1.5s infinite alternate;
+    transition: all 0.4s ease;
+  }
+  @keyframes box-flicker {
+    0% { border-color: rgba(255, 82, 82, 0.7); }
+    100% { border-color: rgba(255, 82, 82, 1); }
+  }
+
+  /* Metric card */
+  .metric-card {
+    transition: all 0.2s ease;
+  }
+  .metric-card:hover {
+    border-color: rgba(0,229,255,0.35);
+    transform: translateY(-2px);
+  }
+
+  /* Radar sweep animation */
+  @keyframes radar-sweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .radar-arm {
+    transform-origin: center center;
+    animation: radar-sweep 4s linear infinite;
+  }
+</style>
+</head>
+
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-primary/20 selection:text-primary">
+
+<!-- ═══════════════════ TOP NAV BAR ═══════════════════ -->
+<header class="fixed top-0 left-0 w-full z-50 h-14 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 flex items-center justify-between px-4 md:px-8">
+  <div class="flex items-center gap-4 lg:gap-6">
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-2.5 group">
+      <div class="w-8 h-8 rounded bg-primary/10 border border-primary/40 flex items-center justify-center text-primary group-hover:border-primary transition-colors">
+        <span class="material-symbols-outlined text-lg">shield</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-display font-black text-primary tracking-wider text-base">ATIG</span>
+          <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-primary/20 text-primary uppercase font-semibold">C2 Grid</span>
+        </div>
+        <div class="font-mono text-[10px] text-outline leading-none hidden sm:block">Tactical Intelligence v2.1</div>
+      </div>
+    </a>
+
+    <!-- Tab Navigation -->
+    <nav class="flex gap-1 ml-2 sm:ml-4" id="nav-tabs">
+      <button class="tab-btn active font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="dashboard">
+        <span class="material-symbols-outlined text-sm">dashboard</span>
+        <span class="hidden md:inline">Dashboard</span>
+      </button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="analysis">
+        <span class="material-symbols-outlined text-sm">analytics</span>
+        <span class="hidden md:inline">Analysis</span>
+      </button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="rover">
+        <span class="material-symbols-outlined text-sm">smart_toy</span>
+        <span class="hidden md:inline">Rover C2</span>
+      </button>
+      <button class="tab-btn font-mono text-xs px-3 py-1.5 text-outline rounded-sm tracking-wider uppercase flex items-center gap-1.5" data-tab="technical">
+        <span class="material-symbols-outlined text-sm">memory</span>
+        <span class="hidden md:inline">Technical</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="flex items-center gap-2.5 sm:gap-4">
+    <!-- Mode Badge / Switcher -->
+    <div class="flex items-center gap-2 px-3 py-1 rounded glass text-xs font-mono" id="engine-status-badge">
+      <span class="status-pulse online" id="mode-dot"></span>
+      <span class="text-primary font-medium" id="mode-label">SIMULATION ACTIVE</span>
+    </div>
+
+    <!-- Clock -->
+    <div class="font-mono text-xs text-on-surface-variant hidden lg:flex items-center gap-1.5 bg-surface-container px-2.5 py-1 rounded border border-outline-variant/30">
+      <span class="material-symbols-outlined text-xs text-outline">schedule</span>
+      <span id="clock">00:00:00 UTC</span>
+    </div>
+
+    <!-- GitHub Link -->
+    <a href="https://github.com/piyushverma012389-png/ATIG" target="_blank" rel="noopener noreferrer" class="glass px-2.5 py-1 rounded border border-outline-variant/40 hover:border-primary/50 text-xs font-mono text-on-surface hover:text-primary flex items-center gap-1.5 transition-colors" title="View Source on GitHub">
+      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span class="hidden sm:inline">GitHub</span>
+    </a>
+  </div>
+</header>
+
+<!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+<main class="flex-1 mt-14 px-3 sm:px-6 md:px-8 max-w-[1680px] mx-auto w-full py-5">
+
+<!-- ─────────────── TAB: DASHBOARD ─────────────── -->
+<div class="tab-content active" id="tab-dashboard">
+
+  <!-- Status Banner & Quick Simulation Controls -->
+  <div class="glass glass-active corner-marks p-4 sm:p-5 mb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <span class="status-pulse online" id="system-dot"></span>
+      <div>
+        <h1 class="font-display font-extrabold text-lg sm:text-xl text-primary tracking-tight uppercase flex items-center gap-2">
+          Autonomous Tactical Intelligence Grid
+          <span class="text-xs font-mono font-normal px-2 py-0.5 rounded bg-primary/10 border border-primary/30 text-primary hidden md:inline">DEC-GRID-LIVE</span>
+        </h1>
+        <p class="font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5" id="system-status-text">
+          SYSTEM ONLINE // ALL SECTORS NOMINAL // ENCRYPTED MESH ACTIVE
+        </p>
+      </div>
+    </div>
+    
+    <!-- Action Controls -->
+    <div class="flex flex-wrap items-center gap-2">
+      <button onclick="triggerSimulatedThreat('High')" class="bg-error/15 border border-error/40 hover:bg-error/25 text-error px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all">
+        <span class="material-symbols-outlined text-sm">warning</span>
+        Simulate Threat
+      </button>
+      <button onclick="triggerSimulatedThreat('Medium')" class="bg-secondary/15 border border-secondary/40 hover:bg-secondary/25 text-secondary px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all">
+        <span class="material-symbols-outlined text-sm">sensors</span>
+        Simulate Vehicle
+      </button>
+      <button onclick="deployRoverAutonomous()" class="bg-primary/15 border border-primary/40 hover:bg-primary/25 text-primary px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all">
+        <span class="material-symbols-outlined text-sm">smart_toy</span>
+        Deploy Rover
+      </button>
+      <button onclick="resetThreats()" class="glass border border-outline-variant/50 hover:border-outline text-on-surface px-3 py-1.5 rounded font-mono text-xs uppercase tracking-wider transition-colors">
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="metric-card glass corner-marks p-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Active Nodes</span>
+        <span class="material-symbols-outlined text-primary text-sm">hub</span>
+      </div>
+      <div class="font-display text-2xl sm:text-3xl font-bold text-primary" id="metric-nodes">3</div>
+      <div class="font-mono text-2xs text-success mt-1 flex items-center gap-1" id="metric-nodes-status">
+        <span class="w-1.5 h-1.5 rounded-full bg-success"></span> 3/3 Nodes Mesh Online
+      </div>
+    </div>
+
+    <div class="metric-card glass corner-marks p-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Active Threats</span>
+        <span class="material-symbols-outlined text-error text-sm">gpp_maybe</span>
+      </div>
+      <div class="font-display text-2xl sm:text-3xl font-bold text-error" id="metric-threats">0</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-threats-label">Zero active breaches</div>
+    </div>
+
+    <div class="metric-card glass corner-marks p-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Rover Unit</span>
+        <span class="material-symbols-outlined text-success text-sm">precision_manufacturing</span>
+      </div>
+      <div class="font-display text-xl sm:text-2xl font-bold text-success" id="metric-rover">STANDBY</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-rover-detail">Base Station // 100% Bat</div>
+    </div>
+
+    <div class="metric-card glass corner-marks p-4">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-mono text-2xs text-on-surface-variant uppercase tracking-wider">Detection Pipeline</span>
+        <span class="material-symbols-outlined text-primary text-sm">bolt</span>
+      </div>
+      <div class="font-display text-xl sm:text-2xl font-bold text-primary" id="metric-network">YOLOv12n</div>
+      <div class="font-mono text-2xs text-on-surface-variant mt-1" id="metric-fps">32.4 FPS // 18ms Latency</div>
+    </div>
+  </div>
+
+  <!-- Video Feed + Tactical Logs + Live Radar -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    
+    <!-- Video Feed Container (8 cols) -->
+    <div class="lg:col-span-8 glass corner-marks overflow-hidden flex flex-col">
+      <div class="p-3 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container/50">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-base">videocam</span>
+          <span class="font-mono text-xs font-semibold text-primary uppercase tracking-wider">Live AI Tactical Surveillance Feed</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-primary/20 text-primary border border-primary/30 ml-2 hidden sm:inline">DEMO STREAM</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Filter toggles -->
+          <div class="flex items-center gap-1">
+            <button id="btn-thermal" onclick="toggleThermalMode()" class="px-2 py-0.5 rounded text-2xs font-mono glass border border-outline-variant text-outline hover:text-primary transition-colors">THERMAL</button>
+            <button id="btn-hud" onclick="toggleBBox()" class="px-2 py-0.5 rounded text-2xs font-mono glass border border-primary/40 text-primary">AI HUD: ON</button>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="status-pulse online" id="feed-status-dot"></span>
+            <span class="font-mono text-2xs text-success font-semibold" id="feed-status-text">REC 1080P</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feed-container relative aspect-video flex items-center justify-center bg-black" id="feed-viewport">
+        <!-- Live Demonstration Video Player -->
+        <video id="demo-video" class="w-full h-full object-cover" autoplay loop muted playsinline>
+          <source src="static/video/ATIG_FINAL_DEMONSTRATION.mp4" type="video/mp4">
+          Your browser does not support HTML5 video.
+        </video>
+
+        <!-- Scanlines effect -->
+        <div class="scanline-overlay"></div>
+
+        <!-- Simulated AI Target Bounding Boxes -->
+        <div id="target-box-1" class="target-box" style="top: 22%; left: 38%; width: 18%; height: 48%; display: block;">
+          <div class="absolute -top-5 left-0 bg-error/90 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 whitespace-nowrap">
+            <span>TARGET_01: HUMAN</span>
+            <span class="text-yellow-300 font-bold">96%</span>
+          </div>
+          <div class="absolute -bottom-4 right-0 font-mono text-[8px] text-error font-bold tracking-widest">
+            RANGE: 4.2m
+          </div>
+        </div>
+
+        <!-- Crosshair & Grid Center Overlay -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30">
+          <div class="w-24 h-24 border border-primary/40 rounded-full flex items-center justify-center">
+            <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+          </div>
+          <div class="absolute w-36 h-[1px] bg-primary/40"></div>
+          <div class="absolute h-36 w-[1px] bg-primary/40"></div>
+        </div>
+
+        <!-- Overlay Top -->
+        <div class="feed-overlay">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-2xs text-primary bg-surface/80 px-2 py-0.5 rounded border border-primary/30">NODE_ALPHA // CAM_01</span>
+            <span class="font-mono text-2xs text-secondary bg-surface/80 px-2 py-0.5 rounded border border-secondary/30">SECTOR_NORTH</span>
+          </div>
+          <div class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/40" id="feed-timestamp">
+            2026-08-21 10:00:00
+          </div>
+        </div>
+
+        <!-- Overlay Bottom -->
+        <div class="feed-overlay-bottom">
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-2xs text-success bg-surface/80 px-2 py-0.5 rounded border border-success/30">FUSION_CONF: 0.94</span>
+            <span class="font-mono text-2xs text-on-surface-variant bg-surface/80 px-2 py-0.5 rounded border border-outline-variant/30">PIR: TRIGGERED</span>
+          </div>
+          <span class="font-mono text-2xs text-primary/80 bg-surface/80 px-2 py-0.5 rounded border border-primary/20">ATIG AES-256 MESH</span>
+        </div>
+      </div>
+
+      <!-- Feed Controls Footer -->
+      <div class="p-2.5 bg-surface-container flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/20">
+        <div class="flex items-center gap-2">
+          <button onclick="togglePlayPause()" class="glass px-2.5 py-1 rounded text-2xs font-mono text-primary hover:bg-primary/10 flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs" id="play-pause-icon">pause</span>
+            <span id="play-pause-text">PAUSE FEED</span>
+          </button>
+          <button onclick="restartVideo()" class="glass px-2.5 py-1 rounded text-2xs font-mono text-on-surface hover:text-primary flex items-center gap-1">
+            <span class="material-symbols-outlined text-xs">replay</span>
+            RESTART
+          </button>
+        </div>
+        <div class="font-mono text-2xs text-outline flex items-center gap-3">
+          <span>SRC: 192.168.1.101:8080</span>
+          <span>CODEC: H.264 / MJPEG</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tactical Logs & Radar Column (4 cols) -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      
+      <!-- Mini Radar Visualizer -->
+      <div class="glass corner-marks p-3.5 flex flex-col items-center">
+        <div class="w-full flex items-center justify-between mb-2">
+          <span class="font-mono text-xs text-primary uppercase tracking-wider flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">radar</span>
+            Tactical Sector Radar
+          </span>
+          <span class="font-mono text-2xs text-success font-semibold">SWEEP ACTIVE</span>
+        </div>
+        <div class="relative w-48 h-48 rounded-full border border-primary/30 flex items-center justify-center bg-surface-dim overflow-hidden shadow-inner">
+          <!-- Concentric rings -->
+          <div class="absolute w-36 h-36 rounded-full border border-primary/20"></div>
+          <div class="absolute w-24 h-24 rounded-full border border-primary/20"></div>
+          <div class="absolute w-12 h-12 rounded-full border border-primary/20"></div>
+          <div class="absolute w-full h-[1px] bg-primary/20"></div>
+          <div class="absolute h-full w-[1px] bg-primary/20"></div>
+          
+          <!-- Radar Sweep Cone -->
+          <div class="absolute inset-0 radar-arm" style="background: conic-gradient(from 0deg, rgba(0,229,255,0.4) 0deg, rgba(0,229,255,0) 60deg);"></div>
+          
+          <!-- Simulated Blips -->
+          <div id="radar-blip-1" class="absolute w-2 h-2 rounded-full bg-error shadow-[0_0_8px_#ff5252] transition-all" style="top: 35%; left: 62%;"></div>
+          <div class="absolute w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#00e5ff]" style="top: 70%; left: 30%;"></div>
+          
+          <!-- Center base -->
+          <div class="w-2 h-2 bg-primary rounded-full z-10 shadow-[0_0_6px_#00e5ff]"></div>
+        </div>
+      </div>
+
+      <!-- Tactical Logs -->
+      <div class="glass corner-marks flex flex-col flex-1 min-h-[300px]">
+        <div class="p-3 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container/50">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-sm">terminal</span>
+            <span class="font-mono text-xs font-semibold text-primary uppercase tracking-wider">Tactical Events Log</span>
+          </div>
+          <span class="font-mono text-2xs text-on-surface-variant" id="log-count">5 entries</span>
+        </div>
+        <div id="tactical-logs" class="flex-1 flex flex-col gap-1.5 p-3 overflow-y-auto max-h-[320px]">
+          <!-- Initial Log Entries -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────── TAB: ANALYSIS ─────────────── -->
+<div class="tab-content" id="tab-analysis">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <!-- Threat Level Distribution -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">pie_chart</span>
+        Threat Level Classification
+      </h3>
+      <div class="flex justify-center my-2">
+        <canvas id="chart-threat-levels" width="220" height="220"></canvas>
+      </div>
+      <div class="flex justify-center gap-5 mt-4">
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-error inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">High (<span id="stat-high">8</span>)</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-secondary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Medium (<span id="stat-medium">14</span>)</span></div>
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span><span class="font-mono text-2xs text-on-surface-variant">Low (<span id="stat-low">27</span>)</span></div>
+      </div>
+    </div>
+
+    <!-- Detection by Object Type -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">category</span>
+        Object Type Distribution
+      </h3>
+      <div id="chart-objects" class="space-y-3.5 mt-2">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">analytics</span>
+        Intelligence Metrics
+      </h3>
+      <div class="space-y-3.5 mt-2">
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Total Event Detections</span>
+          <span class="font-display text-xl font-bold text-primary" id="stat-total">49</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Mean AI Confidence</span>
+          <span class="font-display text-xl font-bold text-secondary" id="stat-confidence">94.8%</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Sensor Fusion Rejection Rate</span>
+          <span class="font-display text-xl font-bold text-success">98.2%</span>
+        </div>
+        <div class="border-t border-outline-variant/20"></div>
+        <div class="flex justify-between items-center">
+          <span class="font-mono text-xs text-on-surface-variant">Autonomous Dispatch Response</span>
+          <span class="font-display text-xl font-bold text-primary">&lt; 250ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection Timeline -->
+    <div class="glass corner-marks p-5 md:col-span-2 lg:col-span-3">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-mono text-xs text-primary uppercase tracking-wider flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">timeline</span>
+          Threat Frequency Timeline (Last 60 Minutes — 5-min intervals)
+        </h3>
+        <span class="font-mono text-2xs text-outline">AUTO-REFRESHING</span>
+      </div>
+      <div id="chart-timeline" class="flex items-end gap-1.5 sm:gap-2 h-36 mt-2 pt-4"></div>
+      <div class="flex justify-between mt-3">
+        <span class="font-mono text-2xs text-outline">-60 min</span>
+        <span class="font-mono text-2xs text-outline">-45 min</span>
+        <span class="font-mono text-2xs text-outline">-30 min</span>
+        <span class="font-mono text-2xs text-outline">-15 min</span>
+        <span class="font-mono text-2xs text-primary font-bold">Now</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── TAB: ROVER ─────────────── -->
+<div class="tab-content" id="tab-rover">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Rover Status -->
+    <div class="lg:col-span-4 glass corner-marks p-5 flex flex-col justify-between">
+      <div>
+        <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">precision_manufacturing</span>
+          Rover Unit Alpha Telemetry
+        </h3>
+        <div class="text-center py-5">
+          <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-2 border-primary/30 mb-3 relative bg-primary/5">
+            <span class="material-symbols-outlined text-primary text-4xl" id="rover-unit-icon">smart_toy</span>
+            <span class="absolute -bottom-1 -right-1 status-pulse online" id="rover-status-dot" style="width:12px;height:12px;"></span>
+          </div>
+          <div class="font-display text-2xl font-bold text-success mb-1" id="rover-status-display">STANDBY</div>
+          <div class="font-mono text-2xs text-on-surface-variant" id="rover-last-cmd">Ready for deployment</div>
+        </div>
+      </div>
+
+      <div class="space-y-2 mt-4">
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded border border-outline-variant/20">
+          <span class="font-mono text-xs text-on-surface-variant">Battery Level</span>
+          <div class="flex items-center gap-2.5">
+            <div class="w-20 h-2 bg-surface-dim rounded-full overflow-hidden border border-outline-variant/30">
+              <div class="h-full bg-success rounded-full transition-all duration-500" id="rover-battery-bar" style="width:100%"></div>
+            </div>
+            <span class="font-mono text-xs text-success font-bold" id="rover-battery-text">100%</span>
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded border border-outline-variant/20">
+          <span class="font-mono text-xs text-on-surface-variant">Grid Position</span>
+          <span class="font-mono text-xs text-primary font-bold" id="rover-position">X: 0.0m | Y: 0.0m</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded border border-outline-variant/20">
+          <span class="font-mono text-xs text-on-surface-variant">Motor Drive</span>
+          <span class="font-mono text-xs text-on-surface-variant" id="rover-motor">0 RPM // Nominal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Directional Control Pad -->
+    <div class="lg:col-span-4 glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">gamepad</span>
+        Teleoperation & Directional Drive
+      </h3>
+      
+      <div class="flex flex-col items-center gap-2.5 py-4">
+        <!-- D-pad Up -->
+        <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('forward')">
+          <span class="material-symbols-outlined text-primary text-xl">arrow_upward</span>
+        </button>
+        <div class="flex gap-2.5">
+          <!-- D-pad Left -->
+          <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('left')">
+            <span class="material-symbols-outlined text-primary text-xl">arrow_back</span>
+          </button>
+          <!-- Stop / E-Stop -->
+          <button class="rover-btn w-16 h-12 glass border border-error/50 bg-error/10 rounded flex items-center justify-center hover:bg-error/20" onclick="executeRoverCommand('stop')">
+            <span class="material-symbols-outlined text-error text-xl">stop_circle</span>
+          </button>
+          <!-- D-pad Right -->
+          <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('right')">
+            <span class="material-symbols-outlined text-primary text-xl">arrow_forward</span>
+          </button>
+        </div>
+        <!-- D-pad Down -->
+        <button class="rover-btn w-16 h-12 glass border border-primary/30 rounded flex items-center justify-center hover:border-primary" onclick="executeRoverCommand('back')">
+          <span class="material-symbols-outlined text-primary text-xl">arrow_downward</span>
+        </button>
+      </div>
+
+      <!-- Tactical Mission Action Buttons -->
+      <div class="grid grid-cols-2 gap-2 mt-4">
+        <button class="rover-btn py-2.5 px-3 glass border border-success/40 bg-success/10 rounded text-success font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" onclick="executeRoverCommand('deploy')">
+          <span class="material-symbols-outlined text-sm">rocket_launch</span>Deploy
+        </button>
+        <button class="rover-btn py-2.5 px-3 glass border border-secondary/40 bg-secondary/10 rounded text-secondary font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-1.5" onclick="executeRoverCommand('patrol')">
+          <span class="material-symbols-outlined text-sm">explore</span>Patrol
+        </button>
+        <button class="rover-btn py-2.5 px-3 glass border border-error/40 bg-error/10 rounded text-error font-mono text-xs uppercase tracking-wider col-span-2 flex items-center justify-center gap-1.5" onclick="executeRoverCommand('intercept')">
+          <span class="material-symbols-outlined text-sm">crisis_alert</span>Intercept Threat
+        </button>
+        <button class="rover-btn py-2.5 px-3 glass border border-primary/40 bg-primary/10 rounded text-primary font-mono text-xs uppercase tracking-wider col-span-2 flex items-center justify-center gap-1.5" onclick="executeRoverCommand('return')">
+          <span class="material-symbols-outlined text-sm">home</span>Return to Base
+        </button>
+      </div>
+    </div>
+
+    <!-- Rover Activity Log -->
+    <div class="lg:col-span-4 glass corner-marks p-5 flex flex-col max-h-[520px]">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-mono text-xs text-primary uppercase tracking-wider flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">history</span>
+          Teleoperation Log
+        </h3>
+        <button onclick="clearRoverLogs()" class="font-mono text-2xs text-outline hover:text-primary">Clear</button>
+      </div>
+      <div id="rover-log" class="flex-1 overflow-y-auto space-y-2 pr-1">
+        <!-- Initial rover logs -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────── TAB: TECHNICAL ─────────────── -->
+<div class="tab-content" id="tab-technical">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <!-- System Performance -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">speed</span>
+        Edge Node Telemetry
+      </h3>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">System Uptime</span>
+          <span class="font-mono text-xs text-primary font-bold" id="sys-uptime">2h 45m 12s</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">MQTT Messages Processed</span>
+          <span class="font-mono text-xs text-primary font-bold" id="sys-messages">1,482</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Inference Model</span>
+          <span class="font-mono text-xs text-secondary font-bold">YOLOv12n TensorRT / ONNX</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Database Storage</span>
+          <span class="font-mono text-xs text-primary font-bold">SQLite Encrypted (228 KB)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MQTT & Mesh Link -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">cell_tower</span>
+        Decentralized Mesh Architecture
+      </h3>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Broker Topology</span>
+          <span class="font-mono text-xs text-primary font-bold">Mosquitto / HiveMQ Mesh</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Mesh Link Status</span>
+          <span class="font-mono text-xs text-success font-bold flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-success"></span> Connected (Active)
+          </span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Active Topics</span>
+          <span class="font-mono text-2xs text-secondary">atig/alerts, atig/heartbeat, atig/rover</span>
+        </div>
+        <div class="flex justify-between items-center p-2.5 bg-surface-container rounded">
+          <span class="font-mono text-xs text-on-surface-variant">Encryption</span>
+          <span class="font-mono text-xs text-primary">AES-GCM-256 TLS 1.3</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Node Hardware List -->
+    <div class="glass corner-marks p-5">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">developer_board</span>
+        Active Node Units
+      </h3>
+      <div id="node-hardware-list" class="space-y-2.5">
+        <!-- Node Alpha -->
+        <div class="p-3 bg-surface-container rounded border border-primary/30">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="font-mono text-xs text-primary font-bold">Node_Alpha (Sector 1)</span>
+            <span class="status-pulse online"></span>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-2xs font-mono">
+            <span class="text-on-surface-variant">FPS: <span class="text-primary">31.8</span></span>
+            <span class="text-on-surface-variant">Dets: <span class="text-primary">24</span></span>
+            <span class="text-on-surface-variant">CPU: <span class="text-success">22%</span></span>
+            <span class="text-on-surface-variant">Link: <span class="text-success">Online</span></span>
+          </div>
+        </div>
+
+        <!-- Node Bravo -->
+        <div class="p-3 bg-surface-container rounded border border-primary/30">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="font-mono text-xs text-primary font-bold">Node_Bravo (Sector 2)</span>
+            <span class="status-pulse online"></span>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-2xs font-mono">
+            <span class="text-on-surface-variant">FPS: <span class="text-primary">30.2</span></span>
+            <span class="text-on-surface-variant">Dets: <span class="text-primary">17</span></span>
+            <span class="text-on-surface-variant">CPU: <span class="text-success">19%</span></span>
+            <span class="text-on-surface-variant">Link: <span class="text-success">Online</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sensor Fusion Architecture Diagram -->
+    <div class="glass corner-marks p-5 md:col-span-2 lg:col-span-3">
+      <h3 class="font-mono text-xs text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">schema</span>
+        Multimodal Sensor Fusion & Threat Evaluation Pipeline
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 py-2">
+        
+        <div class="glass border border-primary/30 p-4 rounded text-center">
+          <span class="material-symbols-outlined text-primary text-3xl mb-1">videocam</span>
+          <div class="font-mono text-xs text-primary font-bold">Camera (YOLOv12)</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Object & Class Bounds</div>
+        </div>
+
+        <div class="glass border border-secondary/30 p-4 rounded text-center">
+          <span class="material-symbols-outlined text-secondary text-3xl mb-1">sensors</span>
+          <div class="font-mono text-xs text-secondary font-bold">PIR Pyroelectric</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Thermal Motion Verify</div>
+        </div>
+
+        <div class="glass border border-secondary/30 p-4 rounded text-center">
+          <span class="material-symbols-outlined text-secondary text-3xl mb-1">straighten</span>
+          <div class="font-mono text-xs text-secondary font-bold">Ultrasonic Ranger</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Range & Proximity</div>
+        </div>
+
+        <div class="glass border border-error/30 p-4 rounded text-center">
+          <span class="material-symbols-outlined text-error text-3xl mb-1">gpp_maybe</span>
+          <div class="font-mono text-xs text-error font-bold">Threat Evaluator</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Risk Weighted Score</div>
+        </div>
+
+        <div class="glass border border-success/30 p-4 rounded text-center">
+          <span class="material-symbols-outlined text-success text-3xl mb-1">smart_toy</span>
+          <div class="font-mono text-xs text-success font-bold">Rover Dispatch</div>
+          <div class="font-mono text-2xs text-on-surface-variant mt-1">Autonomous Response</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="w-full py-4 px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center bg-surface-dim border-t border-outline-variant/20 mt-auto gap-3">
+  <div class="flex items-center gap-2 font-mono text-2xs text-outline">
+    <span>© 2026 ATIG — Autonomous Tactical Intelligence Grid</span>
+    <span>•</span>
+    <span class="text-primary font-semibold">GitHub Pages Deployment</span>
+  </div>
+  <div class="flex items-center gap-4">
+    <a href="https://github.com/piyushverma012389-png/ATIG" target="_blank" class="font-mono text-2xs text-primary hover:underline flex items-center gap-1">
+      <span class="material-symbols-outlined text-xs">code</span> Repository Source
+    </a>
+    <span class="font-mono text-2xs text-outline">FIRMWARE: v2.1-RELEASE</span>
+  </div>
+</footer>
+
+<!-- ═══════════════════ SCRIPT LOGIC & SIMULATION ═══════════════════ -->
+<script>
+// ─── Tab Navigation ─────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const target = document.getElementById('tab-' + btn.dataset.tab);
+    if (target) target.classList.add('active');
+  });
+});
+
+// ─── Clock ──────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const utc = now.toISOString().replace('T', ' ').substr(0, 19) + ' UTC';
+  const clockEl = document.getElementById('clock');
+  const feedTs = document.getElementById('feed-timestamp');
+  if (clockEl) clockEl.textContent = utc;
+  if (feedTs) feedTs.textContent = utc;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── State Management ───────────────────────────────────────
+const state = {
+  threats: 0,
+  activeAlerts: [],
+  history: {
+    High: 8,
+    Medium: 14,
+    Low: 27
+  },
+  byObject: {
+    'Human Intruder': 18,
+    'Tactical Vehicle': 12,
+    'Unidentified Drone': 7,
+    'Wildlife / Animal': 12
+  },
+  timeline: [1, 2, 4, 3, 6, 8, 5, 7, 3, 4, 2, 4],
+  rover: {
+    status: 'Standby',
+    battery: 100,
+    x: 0,
+    y: 0,
+    lastCommand: 'INITIALIZE',
+    log: [
+      { command: 'STANDBY_MODE', time: new Date().toLocaleTimeString(), status: 'Ready' },
+      { command: 'GPS_LOCK', time: new Date().toLocaleTimeString(), status: 'Coordinate Fixed (0,0)' }
+    ]
+  },
+  thermalMode: false,
+  hudOverlay: true
+};
+
+// ─── Video Player Controls ──────────────────────────────────
+const video = document.getElementById('demo-video');
+function togglePlayPause() {
+  if (!video) return;
+  const icon = document.getElementById('play-pause-icon');
+  const text = document.getElementById('play-pause-text');
+  if (video.paused) {
+    video.play();
+    if (icon) icon.textContent = 'pause';
+    if (text) text.textContent = 'PAUSE FEED';
+  } else {
+    video.pause();
+    if (icon) icon.textContent = 'play_arrow';
+    if (text) text.textContent = 'RESUME FEED';
+  }
+}
+
+function restartVideo() {
+  if (!video) return;
+  video.currentTime = 0;
+  video.play();
+}
+
+function toggleThermalMode() {
+  state.thermalMode = !state.thermalMode;
+  const btn = document.getElementById('btn-thermal');
+  const vp = document.getElementById('feed-viewport');
+  if (state.thermalMode) {
+    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono bg-secondary/20 text-secondary border border-secondary';
+    vp.style.filter = 'hue-rotate(180deg) contrast(1.5) saturate(1.8)';
+  } else {
+    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono glass border border-outline-variant text-outline hover:text-primary transition-colors';
+    vp.style.filter = 'none';
+  }
+}
+
+function toggleBBox() {
+  state.hudOverlay = !state.hudOverlay;
+  const btn = document.getElementById('btn-hud');
+  const bbox = document.getElementById('target-box-1');
+  if (state.hudOverlay) {
+    btn.textContent = 'AI HUD: ON';
+    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono glass border border-primary/40 text-primary';
+    if (bbox) bbox.style.display = 'block';
+  } else {
+    btn.textContent = 'AI HUD: OFF';
+    btn.className = 'px-2 py-0.5 rounded text-2xs font-mono glass border border-outline-variant text-outline';
+    if (bbox) bbox.style.display = 'none';
+  }
+}
+
+// ─── Tactical Threat Generator ──────────────────────────────
+function triggerSimulatedThreat(level = 'High') {
+  const nodes = ['Node_Alpha (Sector 1)', 'Node_Bravo (Sector 2)', 'Node_Charlie (Sector 3)'];
+  const objects = ['Human Intruder', 'Tactical Vehicle', 'Unidentified Drone'];
+  
+  const node = nodes[Math.floor(Math.random() * nodes.length)];
+  const obj = level === 'High' ? 'Human Intruder' : (level === 'Medium' ? 'Tactical Vehicle' : 'Unidentified Drone');
+  const conf = (0.88 + Math.random() * 0.11).toFixed(2);
+  const distance = (1.5 + Math.random() * 6.5).toFixed(1);
+
+  const alert = {
+    id: Date.now(),
+    node: node,
+    threat_level: level,
+    object: obj,
+    confidence: parseFloat(conf),
+    distance: distance,
+    timestamp: Math.floor(Date.now() / 1000)
+  };
+
+  state.threats++;
+  state.history[level] = (state.history[level] || 0) + 1;
+  state.byObject[obj] = (state.byObject[obj] || 0) + 1;
+  state.timeline[state.timeline.length - 1]++;
+
+  appendTacticalAlert(alert);
+  updateMetrics();
+  updateAnalysisCharts();
+
+  // Move radar blip
+  const blip = document.getElementById('radar-blip-1');
+  if (blip) {
+    blip.style.top = (25 + Math.random() * 50) + '%';
+    blip.style.left = (25 + Math.random() * 50) + '%';
+  }
+}
+
+function appendTacticalAlert(alert) {
+  const logsContainer = document.getElementById('tactical-logs');
+  if (!logsContainer) return;
+
+  const t = new Date(alert.timestamp * 1000).toLocaleTimeString('en-US', { hour12: false });
+  let borderColor, textColor, icon;
+  
+  if (alert.threat_level === 'High') {
+    borderColor = 'border-error/40'; textColor = 'text-error'; icon = 'warning';
+  } else if (alert.threat_level === 'Medium') {
+    borderColor = 'border-secondary/40'; textColor = 'text-secondary'; icon = 'sensors';
+  } else {
+    borderColor = 'border-primary/30'; textColor = 'text-primary'; icon = 'info';
+  }
+
+  const card = document.createElement('div');
+  card.className = `p-2.5 bg-surface-container border ${borderColor} rounded transition-all animate-pulse`;
+  setTimeout(() => card.classList.remove('animate-pulse'), 1000);
+
+  card.innerHTML = `
+    <div class="flex justify-between items-center mb-1">
+      <div class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined ${textColor} text-sm">${icon}</span>
+        <span class="font-mono text-2xs text-outline">[${t}] ${alert.node}</span>
+      </div>
+      <span class="font-mono text-2xs font-bold ${textColor}">${alert.threat_level.toUpperCase()}</span>
+    </div>
+    <div class="font-mono text-xs ${textColor}">
+      ${alert.object} — Conf: ${(alert.confidence * 100).toFixed(0)}% — Range: ${alert.distance}m
+    </div>
+  `;
+
+  logsContainer.prepend(card);
+  while (logsContainer.children.length > 20) {
+    logsContainer.removeChild(logsContainer.lastChild);
+  }
+
+  const logCount = document.getElementById('log-count');
+  if (logCount) logCount.textContent = logsContainer.children.length + ' entries';
+}
+
+function resetThreats() {
+  state.threats = 0;
+  updateMetrics();
+  const sysDot = document.getElementById('system-dot');
+  const sysText = document.getElementById('system-status-text');
+  sysDot.className = 'status-pulse online';
+  sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL // ENCRYPTED MESH ACTIVE';
+  sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
+}
+
+function updateMetrics() {
+  const countEl = document.getElementById('metric-threats');
+  const labelEl = document.getElementById('metric-threats-label');
+  const sysDot = document.getElementById('system-dot');
+  const sysText = document.getElementById('system-status-text');
+
+  if (countEl) countEl.textContent = state.threats;
+  
+  if (state.threats > 0) {
+    if (labelEl) labelEl.textContent = 'Active sector alerts detected!';
+    if (sysDot) sysDot.className = 'status-pulse danger';
+    if (sysText) {
+      sysText.textContent = `ALERT // ${state.threats} ACTIVE THREATS ENGAGED // SENSOR FUSION ACTIVE`;
+      sysText.className = 'font-mono text-2xs text-error tracking-wider mt-0.5 font-bold';
+    }
+  } else {
+    if (labelEl) labelEl.textContent = 'Zero active breaches';
+    if (sysDot) sysDot.className = 'status-pulse online';
+    if (sysText) {
+      sysText.textContent = 'SYSTEM ONLINE // ALL SECTORS NOMINAL // ENCRYPTED MESH ACTIVE';
+      sysText.className = 'font-mono text-2xs text-on-surface-variant tracking-wider mt-0.5';
+    }
+  }
+}
+
+// ─── Rover Control System ───────────────────────────────────
+function executeRoverCommand(cmd) {
+  state.rover.lastCommand = cmd.toUpperCase();
+  
+  if (cmd === 'forward') state.rover.y += 1.5;
+  else if (cmd === 'back') state.rover.y -= 1.5;
+  else if (cmd === 'left') state.rover.x -= 1.5;
+  else if (cmd === 'right') state.rover.x += 1.5;
+  else if (cmd === 'stop') state.rover.status = 'Standby';
+  else if (cmd === 'deploy') state.rover.status = 'Deployed';
+  else if (cmd === 'patrol') state.rover.status = 'Patrolling';
+  else if (cmd === 'intercept') state.rover.status = 'Intercepting';
+  else if (cmd === 'return') {
+    state.rover.status = 'Returning';
+    state.rover.x = 0;
+    state.rover.y = 0;
+  }
+
+  // Battery consumption
+  state.rover.battery = Math.max(12, state.rover.battery - 0.5);
+
+  state.rover.log.unshift({
+    command: cmd.toUpperCase(),
+    time: new Date().toLocaleTimeString(),
+    status: `Exec [X:${state.rover.x.toFixed(1)}, Y:${state.rover.y.toFixed(1)}]`
+  });
+
+  updateRoverDisplay();
+}
+
+function deployRoverAutonomous() {
+  executeRoverCommand('deploy');
+  executeRoverCommand('forward');
+  executeRoverCommand('intercept');
+}
+
+function updateRoverDisplay() {
+  const statusDisp = document.getElementById('rover-status-display');
+  const metricRover = document.getElementById('metric-rover');
+  const dotEl = document.getElementById('rover-status-dot');
+  const posEl = document.getElementById('rover-position');
+  const batText = document.getElementById('rover-battery-text');
+  const batBar = document.getElementById('rover-battery-bar');
+  const lastCmd = document.getElementById('rover-last-cmd');
+
+  if (statusDisp) statusDisp.textContent = state.rover.status.toUpperCase();
+  if (metricRover) metricRover.textContent = state.rover.status.toUpperCase();
+  if (lastCmd) lastCmd.textContent = 'CMD: ' + state.rover.lastCommand;
+  if (posEl) posEl.textContent = `X: ${state.rover.x.toFixed(1)}m | Y: ${state.rover.y.toFixed(1)}m`;
+  
+  if (batText) batText.textContent = Math.round(state.rover.battery) + '%';
+  if (batBar) batBar.style.width = state.rover.battery + '%';
+
+  renderRoverLog();
+}
+
+function renderRoverLog() {
+  const container = document.getElementById('rover-log');
+  if (!container) return;
+
+  container.innerHTML = state.rover.log.slice(0, 15).map(entry => `
+    <div class="p-2 bg-surface-container rounded flex justify-between items-center border border-outline-variant/20">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-xs">chevron_right</span>
+        <span class="font-mono text-xs text-on-surface font-semibold">${entry.command}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-2xs text-on-surface-variant">${entry.status}</span>
+        <span class="font-mono text-2xs text-outline">${entry.time}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function clearRoverLogs() {
+  state.rover.log = [];
+  renderRoverLog();
+}
+
+// ─── Analysis Charts ────────────────────────────────────────
+function drawDonutChart() {
+  const canvas = document.getElementById('chart-threat-levels');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = 85, inner = 52;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const vals = [
+    { val: state.history.High || 0, color: '#ff5252' },
+    { val: state.history.Medium || 0, color: '#ffc107' },
+    { val: state.history.Low || 0, color: '#00e5ff' },
+  ];
+  const total = vals.reduce((s, v) => s + v.val, 0);
+
+  let angle = -Math.PI / 2;
+  vals.forEach(v => {
+    const slice = total > 0 ? (v.val / total) * Math.PI * 2 : 0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, angle, angle + slice);
+    ctx.arc(cx, cy, inner, angle + slice, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = v.color;
+    ctx.fill();
+    angle += slice;
+  });
+
+  // Center text
+  ctx.font = 'bold 24px Geist';
+  ctx.fillStyle = '#e2e4ec';
+  ctx.textAlign = 'center';
+  ctx.fillText(total, cx, cy + 4);
+  ctx.font = '10px JetBrains Mono';
+  ctx.fillStyle = '#5a6478';
+  ctx.fillText('TOTAL', cx, cy + 20);
+
+  // Update counts
+  const hEl = document.getElementById('stat-high');
+  const mEl = document.getElementById('stat-medium');
+  const lEl = document.getElementById('stat-low');
+  const totEl = document.getElementById('stat-total');
+  if (hEl) hEl.textContent = state.history.High;
+  if (mEl) mEl.textContent = state.history.Medium;
+  if (lEl) lEl.textContent = state.history.Low;
+  if (totEl) totEl.textContent = total;
+}
+
+function drawObjectBars() {
+  const container = document.getElementById('chart-objects');
+  if (!container) return;
+
+  const total = Object.values(state.byObject).reduce((a, b) => a + b, 0);
+  const colors = {
+    'Human Intruder': '#ff5252',
+    'Tactical Vehicle': '#ffc107',
+    'Unidentified Drone': '#00e5ff',
+    'Wildlife / Animal': '#00e676'
+  };
+
+  container.innerHTML = Object.entries(state.byObject).map(([obj, count]) => {
+    const pct = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+    const color = colors[obj] || '#00e5ff';
+    return `
+      <div>
+        <div class="flex justify-between mb-1.5 font-mono text-xs">
+          <span class="text-on-surface-variant">${obj}</span>
+          <span style="color:${color}" class="font-bold">${count} (${pct}%)</span>
+        </div>
+        <div class="w-full h-2.5 bg-surface-container-low rounded-full overflow-hidden border border-outline-variant/20">
+          <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function drawTimeline() {
+  const container = document.getElementById('chart-timeline');
+  if (!container) return;
+
+  const max = Math.max(...state.timeline, 1);
+  container.innerHTML = state.timeline.map((count, i) => {
+    const heightPct = (count / max) * 100;
+    const color = count > 5 ? '#ff5252' : (count > 2 ? '#ffc107' : '#00e5ff');
+    return `
+      <div class="flex-1 flex flex-col items-center justify-end h-full">
+        <span class="font-mono text-2xs text-on-surface-variant mb-1 ${count === 0 ? 'invisible' : ''}">${count}</span>
+        <div class="chart-bar w-full rounded-t" style="height:${Math.max(heightPct, 8)}%;background:${color};min-height:4px;"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateAnalysisCharts() {
+  drawDonutChart();
+  drawObjectBars();
+  drawTimeline();
+}
+
+// ─── Initial Population ─────────────────────────────────────
+triggerSimulatedThreat('High');
+triggerSimulatedThreat('Medium');
+triggerSimulatedThreat('Low');
+updateRoverDisplay();
+updateAnalysisCharts();
+
+// Simulated background telemetry heartbeat
+setInterval(() => {
+  if (Math.random() > 0.65) {
+    const levels = ['Low', 'Medium', 'High'];
+    const lvl = levels[Math.floor(Math.random() * levels.length)];
+    if (lvl !== 'High') triggerSimulatedThreat(lvl);
+  }
+}, 8000);
+</script>
+
+</body>
+</html>
