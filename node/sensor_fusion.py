@@ -57,6 +57,7 @@ class SensorFusion:
         """
         # Base threat by object type
         base_threats = {
+            "Drone": 3,     # Airborne threat
             "Vehicle": 3,   # Highest base threat
             "Human": 2,     # Medium base threat
             "Animal": 1,    # Lowest base threat

@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <title>ATIG — Autonomous Tactical Intelligence Grid</title>
 <meta name="description" content="ATIG Command & Control Dashboard — Real-time AI surveillance, threat detection, and autonomous tactical response."/>
 
@@ -1273,12 +1276,26 @@ function processAIDetections(predictions) {
   const cH = canvas.height;
 
   predictions.forEach(p => {
-    const cName = p.class.toLowerCase();
+    const rawClass = (p.class || '').toLowerCase().trim();
 
-    // STRICT FILTER: Discard non-tactical objects (e.g. dining table, chair, bottle, etc.)
-    const targetInfo = TACTICAL_CLASSES[cName];
+    // 1. HARD BLACKLIST: Immediately discard all furniture, household items, tables, chairs, etc.
+    const NON_TACTICAL_BLACKLIST = [
+      'table', 'dining table', 'chair', 'couch', 'sofa', 'bed', 'desk', 'toilet',
+      'tv', 'laptop', 'mouse', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
+      'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+      'hair drier', 'toothbrush', 'potted plant', 'plant', 'bottle', 'wine glass',
+      'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange',
+      'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake'
+    ];
+
+    if (NON_TACTICAL_BLACKLIST.some(b => rawClass.includes(b))) {
+      return; // Discard completely
+    }
+
+    // 2. STRICT WHITELIST: Must match Human, Vehicle, Drone, or Animal
+    const targetInfo = TACTICAL_CLASSES[rawClass];
     if (!targetInfo) {
-      return; // Skip table, chair, etc.
+      return; // Discard non-whitelisted items
     }
 
     // Filter out low confidence noise
